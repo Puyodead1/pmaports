@@ -17,8 +17,13 @@ in pmaports and the processes around device categorization.
    device-categorization
    deviceinfo-reference
    ci-tags
+   firmware
+   generic-device-packages
    generic-kernels
+   hardware-ci
+   kconfig-fragments
    kconfigcheck
    kernel-cmdline
    kernel-versions
+   packaging-guidelines
 ```

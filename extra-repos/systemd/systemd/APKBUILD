@@ -1,21 +1,22 @@
 # Contributor: Jakub Panek <me@panekj.dev>
-# Co-Maintainer: jane400 <jane400@postmarketos.org>
+# Co-Maintainer: Achill Gilgenast <achill@achill.org>
 
 #########################################################
 # Make sure to upgrade systemd-stage0 at the same time! #
 #########################################################
 
-maintainer="Casey Connolly <kcxt@postmarketos.org>"
+maintainer="Clayton Craft <craftyguy@postmarketos.org>"
 pkgname=systemd
-pkgver=259.1
+pkgver=259.4
 _pkgver="${pkgver/_/-}"
-pkgrel=1
+pkgrel=0
 pkgdesc="System and service manager"
 url="https://github.com/systemd/systemd"
 # armhf: no linux-stable
 arch="all !armhf"
 license="MIT AND GPL-2.0-only AND LGPL-2.1-or-later"
-options="pmb:strict"
+# crossdirect disabled because of "ERROR: Problem encountered: unable to determine gperf len type"
+options="pmb:strict !pmb:crossdirect"
 
 triggers="$pkgname.trigger=/usr/lib/systemd/catalog:\
 /usr/lib/udev/hwdb.d:\
@@ -212,7 +213,7 @@ build() {
 		-Dimportd=enabled \
 		\
 		-Dbootloader=disabled \
-		-Dinitrd=false \
+		-Dinitrd=true \
 		-Dhibernate=false \
 		-Dselinux=disabled \
 		-Dsysvinit-path="" \
@@ -472,7 +473,7 @@ libs() {
 }
 
 sha512sums="
-7cbeca5dad6413a876809200583854ddc706b7a69deff958eb1ca1afb726cf4dec014006c10d1945c450b754811d4b95a80fe1778cb3136997f6d11b11c0560e  systemd-259.1.tar.gz
+bf572f92b0b01ecaf08f36ea5e13a2c05a79e6c0c2d9ef191855d1b83ae791a2977841ca85541ace1d30945d5f879d703d390767f708294986b29aeda1449b1f  systemd-259.4.tar.gz
 81c897fed8a3fbfb67ec591b2398a5d65e4af1b3ef379376c157c98d71f085b707f8ebc896d5571a94f99f8fc84fd6b43e3b879ca9b0d57fc6c4596034c7a777  wired.network
 8b0360acd46f8918ccaf4bcfbf8b2e60ba0d1d6ea6c575fa51668e129b421edc3e7503db7790b6abce8d926b6c8493c02893f70eb481e3fdd935c7b90f442474  bless-boot.patch
 "

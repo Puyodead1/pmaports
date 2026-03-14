@@ -1,7 +1,7 @@
 # Co-Maintainer: Achill Gilgenast <achill@achill.org>
 maintainer="Aelin <aelin@postmarketos.org>"
 pkgname=linux-postmarketos-stable
-pkgver=6.19.3
+pkgver=6.19.8
 pkgrel=0
 _kver=${pkgver%.*}
 pkgdesc="Stable Kernel"
@@ -48,9 +48,17 @@ makedepends="
 "
 replaces="linux-stable"
 
-# Source
+# powerpc boot wrapper patches:
+# Necessary for compilation without cross GCC in PATH, cherry-picked from
+# Nathan's fork, he does not have time to upstream them right now but would be
+# happy if someone else did:
+# https://lore.kernel.org/linuxppc-dev/aXs8sgAcci9FKKpx@luna/
 source="
 	linux-$_kver.tar.xz::https://cdn.kernel.org/pub/linux/kernel/v${pkgver%%.*}.x/linux-$_kver.tar.xz
+
+	0001-WIP-arch-powerpc-boot-Support-LLVM-1-in-wrapper-scri.patch
+	0002-WIP-arch-powerpc-boot-Use-z-notext-for-pseries-image.patch
+	0003-WIP-arch-powerpc-boot-Add-z-norelro.patch
 
 	config-stable.aarch64
 	config-stable.armv7
@@ -112,13 +120,16 @@ package() {
 }
 
 sha512sums="
-42cf563be07254942e3873a91241f423753d4a4dc70e18bc8ac210519c0642aef45ea91fdd0e359b7e428a87c5e091e8be3e1199ebeaf679bfc7a09af5e1206e  patch-6.19.3.patch.xz
+21954614fc95f8e6f76f82d702eaea7e7ce75af041e95fe0e230b8030825c6538e4f8b20df7d98e955d8d353ab5cdf4025868f0ca074efd417064c72f5c42631  patch-6.19.8.patch.xz
 01b29c7f4e5bc0c9802794c2cd027fece825f90417be229a71e60eefce530010d5d301749c54ae744e9d4a483518e769e2bb7e6e9209687681ad7fff11c3ed86  linux-6.19.tar.xz
-f22282b2f7a43915d83af77310345597c6ce1cfa02f1340efb30fa02191e67649c4aa2e96cac1f5022c046f3ffb7979bedefad66db7833a2b1a65d19ca32af4b  config-stable.aarch64
-324458036ae7d5b0a27974f886b5ca1c24764cdbb9735e848d5203c26b672a383e39cafa3465e2eb935a772dba6276954b48f5d8042a451af05b272522be8faf  config-stable.armv7
-0abed5421a1eaf1a2088ccda334ac66b6f034832fd9904e3f24796f5cc3020f48bcb734bb391d4dd7f11b0279299060f062e1aa5a838ce45a7dda5e9e41e3675  config-stable.loongarch64
-6d96798e7171a36f0bf4219ad7f2685fd916fff70766cfc3623580c7d0de502562dc136df1cae88ef63d6f67535cd94ecc95adb460977a858153a75754877eb9  config-stable.ppc64le
-685d0808d72f14944c18f95ddef9c7f7aed6d648d5c277e8ea92814cc8b8a15cd21896cb6be643cb34ffe9d1cd0c98f69e3f5394074a3a28c2f9957566f5a540  config-stable.riscv64
-ac380e28ef198ee49964cbcb27dd875cf26b3d01f4b0f4cd6602a24cbdaae25a62ecf624897fde370fc6850bccba7e425fad61fccf8b3569ad4ccd6fc9fe5e49  config-stable.x86
-01676831e44407e8b1bd088f66dba2ada1681d2c5892d002a631d21505d6c6d2c4bb251e3f376316d3f7fcae6da5cacdecd1bb3176342bacfad9786c651efdbc  config-stable.x86_64
+1f11df2480e9f691573283597160b4c806e492cdca4825f3acb3afb70bde43abfab487bcde1f5553b431a702a0039479d041b0ce7859970e706b5a51d2ad8fb0  0001-WIP-arch-powerpc-boot-Support-LLVM-1-in-wrapper-scri.patch
+26521a9c9ea769534095dc4e306babadc8bcbaf03d7faa523c377e41ba0f742ecd0490fa27791d895f729c3ae8845297dca59b4db2475e7f078e689c447430bc  0002-WIP-arch-powerpc-boot-Use-z-notext-for-pseries-image.patch
+302c20c85559fc9b3b2420ed25be1bfbb76c87f2a470e4141c32e9542cf1f5c6b3b5a7847231a3eaa0f6bc0e5942d0c1599e807175dcf5e63469704c3d6adde3  0003-WIP-arch-powerpc-boot-Add-z-norelro.patch
+a1276693a0dad9e22c8f31cfaa4bbc4fe142f06dc7cc36a98afafe024cff5173cfe0e2b1a9e79bb028e9f96ef0a16a2a69439de47e5835598a733da9add52f87  config-stable.aarch64
+14028e3fcc7f2e30c20f2e0df5bd8aefb26333733611010c05bb83356204fc234f05a5a5ab1553696829a7927968fea5b6af569efe24a4d582725b3736da2658  config-stable.armv7
+237708bb4e1863597b39c161ba85aaea336c3394ddfd5f20de8c6fd3639f1defff0a3147a76426d4c34ef97cc9b8a989193a1a0dbfe90b487189100c09a55a46  config-stable.loongarch64
+39958771a19ebe71fc1125e8b9865c00274766a9852f75e07d172b5fdac33e2bc291f6affe190ac9b6848ff1c6425d0bb379e0c7e8e0efaff7213672d1e43e7e  config-stable.ppc64le
+f025e0b4b5f75ecbd8f06134d8337f37dcdadaf6f2e1ea0d5d2e56a527a66e5f90c6f903e0b475238e44b333b3c4a943d1b1f76a9a2b31dcc5c192a14e474f32  config-stable.riscv64
+d51db0d853830cb3b63e9a1b6114d10b515a56230231d87f5ee81bcd1973ceb4eb0c4650d6290ee2567e4d63d338eee68ee726db8f0ac9e2222d8a5b0387e286  config-stable.x86
+66ce641e4d74c691329470122761cae23d51294c2d6561c983322ab8d2029e76fd637b702dd6952c8987ce6233c7fd7086758acf6f0c7dc3aec57d85801386fd  config-stable.x86_64
 "

@@ -1,7 +1,7 @@
 # Co-Maintainer: Achill Gilgenast <achill@achill.org>
 maintainer="Aelin <aelin@postmarketos.org>"
 pkgname=linux-postmarketos-lts
-pkgver=6.18.13
+pkgver=6.18.17
 pkgrel=0
 _kver=${pkgver%.*}
 pkgdesc="LTS Kernel"
@@ -48,9 +48,17 @@ makedepends="
 "
 replaces="linux-lts"
 
-# Source
+# powerpc boot wrapper patches:
+# Necessary for compilation without cross GCC in PATH, cherry-picked from
+# Nathan's fork, he does not have time to upstream them right now but would be
+# happy if someone else did:
+# https://lore.kernel.org/linuxppc-dev/aXs8sgAcci9FKKpx@luna/
 source="
 	linux-$_kver.tar.xz::https://cdn.kernel.org/pub/linux/kernel/v${pkgver%%.*}.x/linux-$_kver.tar.xz
+
+	0001-WIP-arch-powerpc-boot-Support-LLVM-1-in-wrapper-scri.patch
+	0002-WIP-arch-powerpc-boot-Use-z-notext-for-pseries-image.patch
+	0003-WIP-arch-powerpc-boot-Add-z-norelro.patch
 
 	config-lts.aarch64
 	config-lts.armv7
@@ -112,13 +120,16 @@ package() {
 }
 
 sha512sums="
-cc33f4a83116c0ac91b2c3288eaa6224096f11860aca1ad7ac2ffa5f464bcc5d8dab0df0b3dc4e87c0d5adb905928fad3f96e42084b008836f1c3790d3fde639  patch-6.18.13.patch.xz
+9fc2ebdc6dc66ccad21f0bd84edcf682d5e57d2a35b5b3987382adecd85c326fc1f54259f8fa2b2cad0849d99d211470867bc6c80c6f566648fd01b6bae5d115  patch-6.18.17.patch.xz
 88599ffdec96d150c1feb9b261ba93bb0301a9d0e1ad6bef7aeab1f5372cbfc57d8b43c7e902bd8f76921d1dbd8189663c142ea869e51d0e2b483b150ee00fe0  linux-6.18.tar.xz
-1cf476dba9d836efb15f769ca7a07eae44acbe7d81089b22f65f1af6f3c9a867483a9672fc238831b8ee5c4e92bd35ba838cecaf7f694def682a97f429587be8  config-lts.aarch64
-fe73496c838738727cd320de34b60c7ccd4073d0208e60997f6fc50d82125c07d4620ca6b37a79ba17d9f7ebc4bde2a236d4f2c832de7dbc62963042eb6f7a38  config-lts.armv7
-c59e9d68fe3e78fd08a1ee10d3e25a1bdc5cd1e5c0b49a08d04c7d2dffddcd13d135027f4e39b404396e4170820847a3084c43e2dae27413c18cf14576bd1cb4  config-lts.loongarch64
-c645edd46d13cd10610eeff2ae1b704a48041c6389d063ee267c62032ee621dec226869419363c36453fdad139a6117d81c85759da616807448d24c2a2824ff3  config-lts.ppc64le
-eda08b397a281e83aa9db23e56bbf4b0633f32fd8e5ed4d805cbddaedb2a299de1cee56bbb0e52c2bc2b68acc889bee01caee6f7f354ed18520ccd8552767ff9  config-lts.riscv64
-a6644ae4a42e8d45f1968dc67059588278ca7840f69c2036d417ae1eeb026c7fac9e5f5a74006aa91899c891a954022154f44cba3670c83eac11f1fc1107959c  config-lts.x86
-2751d98f5836d2b8d445437ef7298c5cd5eaa8897d91f9a643402742138b55e5011a2cfe12a3ae4d281e78bf41695d2f57b5ee3ae361d2f1b291f5a5703dcbe9  config-lts.x86_64
+1f11df2480e9f691573283597160b4c806e492cdca4825f3acb3afb70bde43abfab487bcde1f5553b431a702a0039479d041b0ce7859970e706b5a51d2ad8fb0  0001-WIP-arch-powerpc-boot-Support-LLVM-1-in-wrapper-scri.patch
+26521a9c9ea769534095dc4e306babadc8bcbaf03d7faa523c377e41ba0f742ecd0490fa27791d895f729c3ae8845297dca59b4db2475e7f078e689c447430bc  0002-WIP-arch-powerpc-boot-Use-z-notext-for-pseries-image.patch
+302c20c85559fc9b3b2420ed25be1bfbb76c87f2a470e4141c32e9542cf1f5c6b3b5a7847231a3eaa0f6bc0e5942d0c1599e807175dcf5e63469704c3d6adde3  0003-WIP-arch-powerpc-boot-Add-z-norelro.patch
+7233dd1ce843ba8a2a2d7c5916bbe409eecee518411b29725a2c702bf15898b17ac0bce2c96b9c1ece090b6da0bf88672d640bb283e2c3f12e2710b22bdb4de1  config-lts.aarch64
+d79a8f85d392e66b646ac8f57a903895bcd17f5ab0ba28b167a4a530a227d0feed91057d25068ee097fe9552467db4085e7454453a10c165179db9a73e1eed56  config-lts.armv7
+f9dac0dcb4255b85738519925cb4b336a3607e5de58f28b973a671be8d9adb5161fe3dd1b581c45bcb9c8e3f563dce60537bdb2736a42e9c12ead4270bc913d4  config-lts.loongarch64
+e6ca0c14d676ba802c3137a79dc220bb2e19324469d3685fecd46d266589a8660a39b514ac9455eba8506b923887326a4b439a468af9684ef1e28b7118a5f30e  config-lts.ppc64le
+92061b08ba64333c36cc3433107d1897f28208f40d596140387b629c950790a256f8acc6994eab29bf090b6610e0b7e8118115a0f29e0226b08b920a93dcd945  config-lts.riscv64
+3795166af191cf5b663893684c9445962b6400649c792623093358452a1293c1177f3ebb5f486148310f22e0d4212f6c6da76e53fb4138d56f51d3f91ce48f56  config-lts.x86
+de8818f3fe33541b5504d93c69f68d8df25efe2c9991208060ff2585a3dce27c2bd4aad9877a0c1560b323ef64c06878c51210e7966371179901578281f7b135  config-lts.x86_64
 "

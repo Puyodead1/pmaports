@@ -78,5 +78,40 @@ The following types of patches can be temporarily added to the generic kernels:
   `-stable` kernels (not to `-lts`).
 * Reverting patches that broke something (while also following up upstream to
   get the patch fixed or reverted).
+* Patches to build the kernel with our toolchains (while also making sure those
+  get upstreamed eventually)
 
-Out-of-tree patches are not acceptable for the generic kernels.
+Generally speaking, out-of-tree patches or non-upstreamable patches are not
+acceptable for the generic kernels.
+
+## Device package template
+
+For a consistent packaging setup, we recommend following this template when
+using the generic kernels in a device package:
+
+```shell
+subpackages="
+  $pkgname-kernel-stable:kernel_stable
+  $pkgname-kernel-lts:kernel_lts
+  $pkgname-kernel-mainline:kernel_mainline
+  "
+...
+
+kernel_stable() {
+  pkgdesc="Stable kernel (recommended, best balance between stability and features)"
+  depends="linux-postmarketos-stable"
+  devicepkg_subpackage_kernel $startdir $pkgname $subpkgname
+}
+
+kernel_lts() {
+  pkgdesc="Long-term maintainance kernel (most stability, not all security fixes & new features)"
+  depends="linux-postmarketos-lts"
+  devicepkg_subpackage_kernel $startdir $pkgname $subpkgname
+}
+
+kernel_mainline() {
+  pkgdesc="Upstream development kernel (regular breakage, latest features)"
+  depends="linux-postmarketos-mainline"
+  devicepkg_subpackage_kernel $startdir $pkgname $subpkgname
+}
+```

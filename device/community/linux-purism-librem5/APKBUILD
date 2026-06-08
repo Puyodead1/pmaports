@@ -24,19 +24,20 @@ options="!strip !check !tracedeps
 makedepends="
 	bash
 	bison
+	clang
 	devicepkg-dev
 	findutils
 	flex
+	gcc
 	installkernel
+	linux-headers
+	lld
+	llvm
 	openssl-dev
 	perl
 	rsync
 	xz
-	clang
-	lld
-	llvm
-	linux-headers
-	gcc
+	zstd
 	"
 install="$pkgname.post-upgrade"
 

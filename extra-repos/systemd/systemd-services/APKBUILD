@@ -10,7 +10,7 @@
 
 maintainer="Clayton Craft <clayton@craftyguy.net>"
 pkgname=systemd-services
-pkgver=122
+pkgver=123
 pkgrel=0
 pkgdesc="Systemd service files"
 url="https://postmarketos.org"
@@ -25,6 +25,7 @@ subpackages="
 	dnsmasq-systemd:_service
 	gnome-clocks-systemd:_service
 	httpd-systemd:_service
+	knot-systemd:_service
 	nginx-systemd:_service
 	openssh-server-pam-systemd:_service
 	tinydm-systemd:_service
@@ -33,6 +34,7 @@ subpackages="
 _dnsmasq_sources="sysusers.d/dnsmasq.conf"  # From: https://src.fedoraproject.org/rpms/dnsmasq/blob/rawhide/f/dnsmasq-systemd-sysusers.conf
 _gnome_clocks_sources="user/gnome-clocks.service" # Similar to https://gitlab.gnome.org/guidog/gnome-clocks/-/commits/phosh
 _httpd_sources="system/httpd.service" # https://gitlab.archlinux.org/archlinux/packaging/packages/apache/-/blob/main/httpd.service + path adjustments
+_knot_sources="system/knot.service" # https://gitlab.nic.cz/knot/knot-dns/-/blob/master/distro/common/knot.service + Type= changed from notify to exec
 _nginx_sources="system/nginx.service" # Based on arch's service: https://gitlab.archlinux.org/archlinux/packaging/packages/nginx/-/blob/main/nginx.service
 _openssh_server_pam_sources="
 	system/sshd.service
@@ -54,6 +56,7 @@ source="$(flatpath \
 	$_dnsmasq_sources \
 	$_gnome_clocks_sources \
 	$_httpd_sources \
+	$_knot_sources \
 	$_nginx_sources \
 	$_openssh_server_pam_sources \
 	$_tinydm_sources \
@@ -102,6 +105,7 @@ sha512sums="
 97887423ad5b8344786912899553cd2f2033da6a79104a9ad59ebda813505ee05bef19c9e6f46af5ecee62dd0d436773a9a0d10bad759cd92aad3f53b95e62a2  sysusers.d-dnsmasq.conf
 bc7987a001d2076788d904f1ea6d3e97a2ab905ee55302ffb90402133c2b9fb760d7ad94e06971d811b9d905048e164cb78355f8cd087219b5b8ff6dab2fbd9c  user-gnome-clocks.service
 666ba094bff47aa67b4e4431929516af355f90ffc1fd60429dcd20b337c3c17d2d62a71c289496217282f0819bc8deba8db5cc5b2915b692defa14d19532a8d1  system-httpd.service
+97b11c7ef16281a54f17f988ce8b1790376f09a82517c1018996fcd9bd4461e02e8787655d4f247f4370a9a2e435ae79009b240b50e2c9dd8ae6cbdd64df7e8b  system-knot.service
 9cba2f9fc043d8cfb09ce7bcc6bef13194f6708bd0b82b2a360304a66a344d38b7f2641bdbeb0ce85ef9390e0f2ea34feef9d7d2c066ca8e0bd8d1f6108ce1e0  system-nginx.service
 fa445c4a53214524baed4e9c52a5463592a074f88a5a286eacb60d0907c0545f725afde23abd68cf611067add80c2ccb289a381fc5ff6a5f654ea49c81f02fe8  system-sshd.service
 6f1db26dbbcf96a5e14996cc468f1911c51a46fc3f70552af3591c0dfaaa043135d137d435818a2a2cce656f09fa305337c3c86121a5109dc20f0326a2e0ec15  system-sshd@.service

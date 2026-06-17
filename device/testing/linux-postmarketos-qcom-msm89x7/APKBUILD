@@ -2,7 +2,7 @@ maintainer="Barnabas Czeman <barnabas.czeman@postmarketos.org>"
 _flavor="postmarketos-qcom-msm89x7"
 pkgname=linux-postmarketos-qcom-msm89x7
 pkgver=7.0.9
-pkgrel=0
+pkgrel=1
 pkgdesc="Mainline kernel fork for Qualcomm QM215/MSM8917/MSM8937/MSM8940/SDM429/SDM439 devices"
 arch="aarch64"
 _carch="arm64"
@@ -30,6 +30,7 @@ _config="config-$_flavor.$arch"
 source="
 	$pkgname-v$_tag.tar.gz::$url/archive/v$_tag.tar.gz
 	$_config
+	0002-arm64-dts-qcom-msm8917-riva-add-aw2013-led.patch
 "
 builddir="$srcdir/linux-$_tag"
 
@@ -60,5 +61,6 @@ package() {
 }
 sha512sums="
 268a56a9a842c412929f4098c95a1b1148d18cd87b331ece06bd7eea9efb128f0f61d786229c1d5f92ff39511a3218bcd8316655d6c924b0d3394802b990293c  linux-postmarketos-qcom-msm89x7-v7.0.9-r0.tar.gz
-028fff414d696b392219984967d98ea68b15fc15695c74f0309487e3bdbaddfdf27c2adf1d2b366644fc6180b570654ea3dc714399fbd4efb1254d258a056d07  config-postmarketos-qcom-msm89x7.aarch64
+1c57a21bae01d7d710a4388cec76f56f9bf56e4e15966a1ac11173453afee5812376944b1ee4fe8c9543a58b46e72ed122cfb050026fea633199cb12d4e1b796  config-postmarketos-qcom-msm89x7.aarch64
+af9e533f3cb992e6c8216a8afa9f5d65a0a7aadcaf4073ae74fb70fe5cff9606380d85451267b927bbcc0e4546b05e67efc3a30d8aac2d8580b3a82e99d797d2  0002-arm64-dts-qcom-msm8917-riva-add-aw2013-led.patch
 "

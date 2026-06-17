@@ -2,14 +2,13 @@ diff --git a/arch/arm64/boot/dts/qcom/msm8917-xiaomi-riva.dts b/arch/arm64/boot/
 index f1d2253..a4f21d3 100644
 --- a/arch/arm64/boot/dts/qcom/msm8917-xiaomi-riva.dts
 +++ b/arch/arm64/boot/dts/qcom/msm8917-xiaomi-riva.dts
-@@ -10,6 +10,7 @@
+@@ -10,4 +10,5 @@
  #include <dt-bindings/arm/qcom,ids.h>
  #include <dt-bindings/gpio/gpio.h>
 +#include <dt-bindings/leds/common.h>
  #include "msm8917.dtsi"
  #include "pm8937.dtsi"
- 
-@@ -185,6 +186,21 @@ &i2c_2 {
+@@ -185,4 +185,18 @@
  		regulator-max-microvolt = <500000>;
  		enable-gpios = <&tlmm 56 GPIO_ACTIVE_HIGH>;
  	};

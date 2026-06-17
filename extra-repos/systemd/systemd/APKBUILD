@@ -17,7 +17,7 @@ pkgname=systemd
 pkgver=261_rc3
 _pkgver="${pkgver/_/-}"
 # pkgrel must match systemd-stage0!
-pkgrel=3
+pkgrel=4
 pkgdesc="System and service manager"
 url="https://github.com/systemd/systemd"
 # armhf: no linux-stable
@@ -44,7 +44,7 @@ triggers="$pkgname.trigger=/usr/lib/systemd/catalog:\
 /etc/systemd/system:\
 /etc/systemd/user
 "
-checkdepends="grep postmarketos-release"
+checkdepends="gdb grep postmarketos-release"
 # clang: used for bpf compilation. this is the default compiler
 # grep: test-kernel-install requires 'grep -G', which is not supported by BusyBox grep.
 makedepends="
@@ -228,6 +228,7 @@ fi
 
 source="
 	$source
+	0001-meson-add-mstackrealign-on-i386-with-musl-and-libuco.patch
 	0001-musl-fix-build-on-32-bit-architecture.patch
 	wired.network
 	"
@@ -326,11 +327,11 @@ build() {
 }
 
 check() {
-	case "$CARCH" in
-	x86_64) meson test --print-errorlogs --quiet --no-stdsplit -C $_meson_builddir ;;
-	*)
-		echo "*** NOTE: Skipping tests for archs that might use pmb:crossdirect/qemu-user ***" ;;
-	esac
+	if [ "$PMB_CROSS" = "unnecessary" ]; then
+		meson test --print-errorlogs --quiet --no-stdsplit -C $_meson_builddir
+	else
+		echo "*** NOTE: Skipping tests, not building natively ***"
+	fi
 }
 
 package() {
@@ -640,6 +641,7 @@ _resolve_packages() {
 
 sha512sums="
 facbcb7831fb84a38eaee5804d9aa03382486006cdb559010d6d353ad9a3986b516522cde1f0e0808fb49365859f790dd1caed24875a1c9e339e892d09d2cf30  systemd-261_rc3.tar.gz
+59eb73df1e20cf43225b841d2445905d028999711de49c9eace82d144a5813027639bebfe390f4bf43993d610bae4cc944549b2c65b9dcf74127752a17471a84  0001-meson-add-mstackrealign-on-i386-with-musl-and-libuco.patch
 a060c2d4eca986fdb7940a5330f91fbeee5ca27ea809cb2005a2b4ea301a441c74157644638c7b17de200751cb0d94fbe6034568d3f7977969ebe510e58853f1  0001-musl-fix-build-on-32-bit-architecture.patch
 81c897fed8a3fbfb67ec591b2398a5d65e4af1b3ef379376c157c98d71f085b707f8ebc896d5571a94f99f8fc84fd6b43e3b879ca9b0d57fc6c4596034c7a777  wired.network
 "

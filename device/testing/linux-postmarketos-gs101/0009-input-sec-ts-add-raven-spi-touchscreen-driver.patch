@@ -1,0 +1,653 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Lior Elko <lioree@gmail.com>
+Date: Wed, 27 May 2026 22:35:00 +0300
+Subject: [PATCH] input: sec-ts: add Raven SPI touchscreen driver
+
+Pixel 6 Pro (raven) stock DTBO uses the Samsung sec_ts SPI touchscreen
+with s6sy79x firmware. The common GS101 device tree currently exposes the
+Pixel 6 ST/FTS node, which makes raven probe the wrong driver.
+
+Add a small SPI sec_ts driver for raven bring-up and override the raven
+touchscreen node to use sec,sec_ts with the properties from stock DTBO.
+
+Signed-off-by: Lior Elko <lioree@gmail.com>
+---
+ arch/arm64/boot/dts/exynos/google/gs101-raven.dts |  19 +
+ drivers/input/touchscreen/Kconfig                 |  11 +
+ drivers/input/touchscreen/Makefile                |   1 +
+ drivers/input/touchscreen/sec_ts_raven_spi.c      | 562 +++++++++++++++++++++
+ 4 files changed, 594 insertions(+)
+ create mode 100644 drivers/input/touchscreen/sec_ts_raven_spi.c
+
+diff --git a/arch/arm64/boot/dts/exynos/google/gs101-raven.dts b/arch/arm64/boot/dts/exynos/google/gs101-raven.dts
+index 3c44b250eebd..9991d68cc0d1 100644
+--- a/arch/arm64/boot/dts/exynos/google/gs101-raven.dts
++++ b/arch/arm64/boot/dts/exynos/google/gs101-raven.dts
+@@ -27,3 +27,22 @@ &framebuffer0 {
+ 	format = "a8r8g8b8";
+ 	status = "okay";
+ };
++
++&spitouch {
++	compatible = "sec,sec_ts";
++	status = "okay";
++	spi-max-frequency = <1000000>;
++
++	pinctrl-names = "default", "sleep";
++	pinctrl-0 = <&ts_irq &ts_reset &ap2aoc
++		     &spi11_bus &spi11_cs>;
++	pinctrl-1 = <&ts_irq &ts_reset &ap2aoc
++		     &spi11_bus &spi11_cs>;
++
++	sec,irq-gpios = <&gpa9 0 GPIO_ACTIVE_LOW>;
++	sec,reset-gpios = <&gpp26 0 GPIO_ACTIVE_HIGH>;
++	sec,switch-gpios = <&gpp26 1 GPIO_ACTIVE_HIGH>;
++
++	vdd-supply = <&s2mpg10_ldo25m>;
++	avdd-supply = <&s2mpg10_ldo26m>;
++};
+diff --git a/drivers/input/touchscreen/Kconfig b/drivers/input/touchscreen/Kconfig
+index c3e096af1384..801910066352 100644
+--- a/drivers/input/touchscreen/Kconfig
++++ b/drivers/input/touchscreen/Kconfig
+@@ -540,6 +540,18 @@ config TOUCHSCREEN_S6SY761
+ 	  To compile this driver as module, choose M here: the
+ 	  module will be called s6sy761.
+ 
++config TOUCHSCREEN_SEC_TS_RAVEN_SPI
++	tristate "Samsung sec_ts SPI touchscreen for Google Pixel 6 Pro"
++	depends on SPI
++	depends on GPIOLIB || COMPILE_TEST
++	help
++	  Say Y here to enable a compact Samsung sec_ts SPI touchscreen
++	  driver for Google Pixel 6 Pro (raven). This driver is intended
++	  for mainline bring-up and uses the sec,sec_ts device-tree binding
++	  found in Google's stock raven DTBO.
++
++	  To compile this driver as a module, choose M here.
++
+ config TOUCHSCREEN_GUNZE
+ 	tristate "Gunze AHL-51S touchscreen"
+ 	select SERIO
+diff --git a/drivers/input/touchscreen/Makefile b/drivers/input/touchscreen/Makefile
+index 113abd7d6038..56765b25ca1f 100644
+--- a/drivers/input/touchscreen/Makefile
++++ b/drivers/input/touchscreen/Makefile
+@@ -80,6 +80,7 @@ obj-$(CONFIG_TOUCHSCREEN_PENMOUNT)	+= penmount.o
+ obj-$(CONFIG_TOUCHSCREEN_PIXCIR)	+= pixcir_i2c_ts.o
+ obj-$(CONFIG_TOUCHSCREEN_RM_TS)		+= raydium_i2c_ts.o
+ obj-$(CONFIG_TOUCHSCREEN_S6SY761)	+= s6sy761.o
++obj-$(CONFIG_TOUCHSCREEN_SEC_TS_RAVEN_SPI)	+= sec_ts_raven_spi.o
+ obj-$(CONFIG_TOUCHSCREEN_SILEAD)	+= silead.o
+ obj-$(CONFIG_TOUCHSCREEN_SIS_I2C)	+= sis_i2c.o
+ obj-$(CONFIG_TOUCHSCREEN_ST_FTS_V521_SPI)	+= fts_spi/
+diff --git a/drivers/input/touchscreen/sec_ts_raven_spi.c b/drivers/input/touchscreen/sec_ts_raven_spi.c
+new file mode 100644
+index 000000000000..e112c02b04fa
+--- /dev/null
++++ b/drivers/input/touchscreen/sec_ts_raven_spi.c
+@@ -0,0 +1,562 @@
++// SPDX-License-Identifier: GPL-2.0
++/*
++ * Minimal Samsung sec_ts SPI touchscreen driver for Google Pixel 6 Pro.
++ *
++ * This follows the SPI framing used by Google's downstream sec_ts driver,
++ * but keeps only enough functionality for direct Linux input reporting.
++ */
++
++#include <linux/delay.h>
++#include <linux/gpio/consumer.h>
++#include <linux/input.h>
++#include <linux/input/mt.h>
++#include <linux/input/touchscreen.h>
++#include <linux/interrupt.h>
++#include <linux/mod_devicetable.h>
++#include <linux/module.h>
++#include <linux/regulator/consumer.h>
++#include <linux/spi/spi.h>
++#include <linux/unaligned.h>
++#include <linux/workqueue.h>
++
++#define SEC_TS_NAME			"sec_ts_raven"
++
++#define SEC_TS_SPI_SYNC_CODE		0xaa
++#define SEC_TS_SPI_HEADER_SIZE		5
++#define SEC_TS_SPI_READ_HEADER_SIZE	7
++#define SEC_TS_SPI_CHECKSUM_SIZE	1
++#define SEC_TS_IO_RETRY_CNT		3
++
++#define SEC_TS_CMD_SENSE_ON		0x10
++#define SEC_TS_CMD_SENSE_OFF		0x11
++#define SEC_TS_READ_PANEL_INFO		0x23
++#define SEC_TS_CMD_SET_TOUCHFUNCTION	0x30
++#define SEC_TS_READ_ID			0x52
++#define SEC_TS_READ_BOOT_STATUS		0x55
++#define SEC_TS_READ_ONE_EVENT		0x60
++#define SEC_TS_READ_ALL_EVENT		0x61
++#define SEC_TS_CMD_CLEAR_EVENT_STACK	0x62
++#define SEC_TS_CMD_STATEMANAGE_ON	0x8e
++#define SEC_TS_CMD_SET_POWER_MODE	0xe4
++
++#define SEC_TS_TOUCH_ENABLE		BIT(0)
++#define SEC_TS_PALM_ENABLE		BIT(5)
++#define SEC_TS_WET_ENABLE		BIT(6)
++#define SEC_TS_DEFAULT_TOUCH_FUNCTION	(SEC_TS_TOUCH_ENABLE | \
++					 SEC_TS_PALM_ENABLE | \
++					 SEC_TS_WET_ENABLE)
++#define SEC_TS_BOOT_APP			0x20
++#define SEC_TS_POWER_MODE_TOUCH		0x00
++#define SEC_TS_STATE_MANAGE_ON		0x01
++
++#define SEC_TS_EVENT_SIZE		8
++#define SEC_TS_EVENT_COUNT		32
++#define SEC_TS_MAX_FINGERS		10
++#define SEC_TS_MAX_X_DEFAULT		1439
++#define SEC_TS_MAX_Y_DEFAULT		3119
++#define SEC_TS_IO_BUF_SIZE		512
++#define SEC_TS_POLL_INTERVAL_MS		10
++
++#define SEC_TS_MASK_TOUCH_STATE		0xc0
++#define SEC_TS_MASK_TID			0x3c
++#define SEC_TS_MASK_EID			0x03
++#define SEC_TS_MASK_X			0xf0
++#define SEC_TS_MASK_Y			0x0f
++#define SEC_TS_MASK_Z			0x3f
++#define SEC_TS_MASK_LEFT_EVENTS		0x3f
++
++#define SEC_TS_EVENT_ID_COORDINATE	0x00
++
++#define SEC_TS_TOUCH_NONE		0x00
++#define SEC_TS_TOUCH_PRESS		0x01
++#define SEC_TS_TOUCH_MOVE		0x02
++#define SEC_TS_TOUCH_RELEASE		0x03
++
++struct sec_ts_raven {
++	struct spi_device *spi;
++	struct input_dev *input;
++	struct touchscreen_properties prop;
++	struct regulator_bulk_data supplies[2];
++	struct gpio_desc *reset_gpio;
++	struct gpio_desc *irq_gpio;
++	struct gpio_desc *switch_gpio;
++	struct mutex io_lock; /* protects the shared SPI buffers */
++	struct mutex event_lock; /* serializes IRQ and polling event reads */
++	struct delayed_work poll_work;
++	u8 tx_buf[SEC_TS_IO_BUF_SIZE];
++	u8 rx_buf[SEC_TS_IO_BUF_SIZE];
++	u8 events[SEC_TS_EVENT_SIZE * SEC_TS_EVENT_COUNT];
++	u32 max_x;
++	u32 max_y;
++};
++
++static u32 sec_ts_spi_delay(u8 reg)
++{
++	switch (reg) {
++	case SEC_TS_READ_ALL_EVENT:
++		return 550;
++	default:
++		return 100;
++	}
++}
++
++static int sec_ts_spi_write(struct sec_ts_raven *ts, u8 reg,
++			    const u8 *data, int len)
++{
++	struct spi_transfer xfer = { 0 };
++	struct spi_message msg;
++	unsigned int spi_len;
++	u8 checksum = 0;
++	int ret;
++	int i;
++
++	if (SEC_TS_SPI_HEADER_SIZE + 1 + len + SEC_TS_SPI_CHECKSUM_SIZE + 3 >
++	    sizeof(ts->tx_buf))
++		return -EINVAL;
++
++	mutex_lock(&ts->io_lock);
++
++	ts->tx_buf[0] = SEC_TS_SPI_SYNC_CODE;
++	ts->tx_buf[1] = ((len + 1) >> 8) & 0xff;
++	ts->tx_buf[2] = (len + 1) & 0xff;
++	ts->tx_buf[3] = 0x00;
++	ts->tx_buf[4] = 0x00;
++	ts->tx_buf[5] = reg;
++	if (len)
++		memcpy(ts->tx_buf + SEC_TS_SPI_HEADER_SIZE + 1, data, len);
++
++	spi_len = SEC_TS_SPI_HEADER_SIZE + 1 + len;
++	for (i = 0; i < spi_len; i++)
++		checksum += ts->tx_buf[i];
++	ts->tx_buf[spi_len++] = checksum;
++	memset(ts->tx_buf + spi_len, 0, 3);
++	spi_len = (spi_len + 3) & ~3;
++
++	spi_message_init(&msg);
++	xfer.len = spi_len;
++	xfer.tx_buf = ts->tx_buf;
++	xfer.rx_buf = NULL;
++	spi_message_add_tail(&xfer, &msg);
++
++	ret = spi_sync(ts->spi, &msg);
++	mutex_unlock(&ts->io_lock);
++
++	return ret;
++}
++
++static int sec_ts_spi_read(struct sec_ts_raven *ts, u8 reg, u8 *data, int len)
++{
++	struct spi_transfer xfer = { 0 };
++	struct spi_message msg;
++	unsigned int write_len;
++	unsigned int read_len;
++	u8 checksum = 0;
++	u8 read_checksum = 0;
++	int ret = -EIO;
++	int retry;
++	int i;
++
++	if (SEC_TS_SPI_HEADER_SIZE + 1 + SEC_TS_SPI_CHECKSUM_SIZE + 3 >
++	    sizeof(ts->tx_buf))
++		return -EINVAL;
++
++	read_len = len + SEC_TS_SPI_READ_HEADER_SIZE + SEC_TS_SPI_CHECKSUM_SIZE;
++	read_len = (read_len + 3) & ~3;
++	if (read_len > sizeof(ts->rx_buf))
++		return -EINVAL;
++
++	mutex_lock(&ts->io_lock);
++
++	ts->tx_buf[0] = SEC_TS_SPI_SYNC_CODE;
++	ts->tx_buf[1] = 0x00;
++	ts->tx_buf[2] = 0x01;
++	ts->tx_buf[3] = (len >> 8) & 0xff;
++	ts->tx_buf[4] = len & 0xff;
++	ts->tx_buf[5] = reg;
++
++	write_len = SEC_TS_SPI_HEADER_SIZE + 1;
++	for (i = 0; i < write_len; i++)
++		checksum += ts->tx_buf[i];
++	ts->tx_buf[write_len++] = checksum;
++	memset(ts->tx_buf + write_len, 0, 3);
++	write_len = (write_len + 3) & ~3;
++
++	for (retry = 0; retry < SEC_TS_IO_RETRY_CNT; retry++) {
++		spi_message_init(&msg);
++		memset(&xfer, 0, sizeof(xfer));
++		xfer.len = write_len;
++		xfer.tx_buf = ts->tx_buf;
++		xfer.rx_buf = NULL;
++		spi_message_add_tail(&xfer, &msg);
++		ret = spi_sync(ts->spi, &msg);
++		if (ret)
++			goto next_retry;
++
++		usleep_range(sec_ts_spi_delay(reg), sec_ts_spi_delay(reg) + 100);
++
++		spi_message_init(&msg);
++		memset(&xfer, 0, sizeof(xfer));
++		memset(ts->rx_buf, 0, read_len);
++		xfer.len = read_len;
++		xfer.rx_buf = ts->rx_buf;
++		spi_message_add_tail(&xfer, &msg);
++		ret = spi_sync(ts->spi, &msg);
++		if (ret)
++			goto next_retry;
++
++		read_checksum = 0;
++		for (i = 0; i < SEC_TS_SPI_READ_HEADER_SIZE + len; i++)
++			read_checksum += ts->rx_buf[i];
++
++		if (ts->rx_buf[0] != SEC_TS_SPI_SYNC_CODE ||
++		    ts->rx_buf[5] != reg ||
++		    read_checksum != ts->rx_buf[SEC_TS_SPI_READ_HEADER_SIZE + len]) {
++			ret = -EIO;
++			goto next_retry;
++		}
++
++		memcpy(data, ts->rx_buf + SEC_TS_SPI_READ_HEADER_SIZE, len);
++		mutex_unlock(&ts->io_lock);
++		return 0;
++
++next_retry:
++		usleep_range(1000, 1500);
++	}
++
++	mutex_unlock(&ts->io_lock);
++	return ret;
++}
++
++static void sec_ts_report_coordinate(struct sec_ts_raven *ts, const u8 *event)
++{
++	u8 tid;
++	u8 touch_state;
++	u8 major = event[4];
++	u8 minor = event[5];
++	u8 pressure = event[6] & SEC_TS_MASK_Z;
++	u16 x = (event[1] << 4) | ((event[3] & SEC_TS_MASK_X) >> 4);
++	u16 y = (event[2] << 4) | (event[3] & SEC_TS_MASK_Y);
++
++	if (!(event[0] & SEC_TS_MASK_TID))
++		return;
++
++	tid = ((event[0] & SEC_TS_MASK_TID) >> 2) - 1;
++	if (tid >= SEC_TS_MAX_FINGERS)
++		return;
++
++	touch_state = (event[0] & SEC_TS_MASK_TOUCH_STATE) >> 6;
++
++	input_mt_slot(ts->input, tid);
++	if (touch_state == SEC_TS_TOUCH_RELEASE || touch_state == SEC_TS_TOUCH_NONE) {
++		input_mt_report_slot_inactive(ts->input);
++		return;
++	}
++
++	if (touch_state != SEC_TS_TOUCH_PRESS && touch_state != SEC_TS_TOUCH_MOVE)
++		return;
++
++	input_mt_report_slot_state(ts->input, MT_TOOL_FINGER, true);
++	touchscreen_report_pos(ts->input, &ts->prop, x, y, true);
++	input_report_abs(ts->input, ABS_MT_TOUCH_MAJOR, major);
++	input_report_abs(ts->input, ABS_MT_TOUCH_MINOR, minor);
++	input_report_abs(ts->input, ABS_MT_PRESSURE, pressure);
++}
++
++static void sec_ts_handle_events(struct sec_ts_raven *ts, int count)
++{
++	int i;
++
++	for (i = 0; i < count; i++) {
++		u8 *event = &ts->events[i * SEC_TS_EVENT_SIZE];
++		u8 event_id = event[0] & SEC_TS_MASK_EID;
++
++		if (!event[0])
++			break;
++
++		if (event_id == SEC_TS_EVENT_ID_COORDINATE)
++			sec_ts_report_coordinate(ts, event);
++	}
++
++	input_mt_sync_frame(ts->input);
++	input_sync(ts->input);
++}
++
++static void sec_ts_read_events(struct sec_ts_raven *ts)
++{
++	u8 left;
++	int ret;
++
++	mutex_lock(&ts->event_lock);
++
++	ret = sec_ts_spi_read(ts, SEC_TS_READ_ONE_EVENT,
++			      ts->events, SEC_TS_EVENT_SIZE);
++	if (ret) {
++		dev_warn_ratelimited(&ts->spi->dev,
++				     "failed to read event: %d\n", ret);
++		goto out;
++	}
++	if (!ts->events[0])
++		goto out;
++
++	left = ts->events[7] & SEC_TS_MASK_LEFT_EVENTS;
++	if (left > SEC_TS_EVENT_COUNT - 1)
++		left = SEC_TS_EVENT_COUNT - 1;
++
++	if (left) {
++		ret = sec_ts_spi_read(ts, SEC_TS_READ_ALL_EVENT,
++				      ts->events + SEC_TS_EVENT_SIZE,
++				      left * SEC_TS_EVENT_SIZE);
++		if (ret) {
++			dev_warn_ratelimited(&ts->spi->dev,
++					     "failed to read events: %d\n", ret);
++			left = 0;
++		}
++	}
++
++	sec_ts_handle_events(ts, left + 1);
++out:
++	mutex_unlock(&ts->event_lock);
++}
++
++static irqreturn_t sec_ts_irq_thread(int irq, void *data)
++{
++	struct sec_ts_raven *ts = data;
++
++	sec_ts_read_events(ts);
++	return IRQ_HANDLED;
++}
++
++static void sec_ts_poll_work(struct work_struct *work)
++{
++	struct sec_ts_raven *ts =
++		container_of(to_delayed_work(work), struct sec_ts_raven, poll_work);
++
++	sec_ts_read_events(ts);
++	schedule_delayed_work(&ts->poll_work,
++			      msecs_to_jiffies(SEC_TS_POLL_INTERVAL_MS));
++}
++
++static int sec_ts_set_normal_power_mode(struct sec_ts_raven *ts)
++{
++	u8 mode = SEC_TS_POWER_MODE_TOUCH;
++	u8 readback;
++	int retry;
++	int ret = -EIO;
++
++	for (retry = 0; retry < 5; retry++) {
++		ret = sec_ts_spi_write(ts, SEC_TS_CMD_SET_POWER_MODE, &mode, 1);
++		if (ret)
++			continue;
++
++		msleep(50);
++		readback = 0xff;
++		ret = sec_ts_spi_read(ts, SEC_TS_CMD_SET_POWER_MODE,
++				      &readback, 1);
++		if (!ret && readback == mode)
++			return 0;
++	}
++
++	return ret ? ret : -EIO;
++}
++
++static int sec_ts_hw_init(struct sec_ts_raven *ts)
++{
++	u8 buf[16];
++	u8 state_manage = SEC_TS_STATE_MANAGE_ON;
++	u8 touch_function[2] = {
++		SEC_TS_DEFAULT_TOUCH_FUNCTION & 0xff,
++		SEC_TS_DEFAULT_TOUCH_FUNCTION >> 8,
++	};
++	int ret;
++
++	ret = regulator_bulk_enable(ARRAY_SIZE(ts->supplies), ts->supplies);
++	if (ret)
++		return ret;
++
++	fsleep(10000);
++	gpiod_set_value_cansleep(ts->reset_gpio, 1);
++	fsleep(10000);
++	gpiod_set_value_cansleep(ts->reset_gpio, 0);
++	fsleep(10000);
++	gpiod_set_value_cansleep(ts->reset_gpio, 1);
++	msleep(80);
++
++	ret = sec_ts_spi_read(ts, SEC_TS_READ_ID, buf, 3);
++	if (ret)
++		dev_warn(&ts->spi->dev, "failed to read id: %d\n", ret);
++
++	ret = sec_ts_spi_read(ts, SEC_TS_READ_PANEL_INFO, buf, 11);
++	if (!ret) {
++		u16 max_x = get_unaligned_be16(buf);
++		u16 max_y = get_unaligned_be16(buf + 2);
++
++		if (max_x && max_y) {
++			ts->max_x = max_x - 1;
++			ts->max_y = max_y - 1;
++		}
++	} else {
++		dev_warn(&ts->spi->dev, "failed to read panel info: %d\n", ret);
++	}
++
++	ret = sec_ts_spi_read(ts, SEC_TS_READ_BOOT_STATUS, buf, 1);
++	if (!ret && buf[0] != SEC_TS_BOOT_APP)
++		dev_warn(&ts->spi->dev, "unexpected boot status 0x%02x\n", buf[0]);
++
++	ret = sec_ts_set_normal_power_mode(ts);
++	if (ret)
++		dev_warn(&ts->spi->dev, "failed to confirm normal power mode: %d\n",
++			 ret);
++
++	ret = sec_ts_spi_write(ts, SEC_TS_CMD_STATEMANAGE_ON,
++			       &state_manage, sizeof(state_manage));
++	if (ret)
++		dev_warn(&ts->spi->dev, "failed to enable state management: %d\n",
++			 ret);
++
++	ret = sec_ts_spi_write(ts, SEC_TS_CMD_SET_TOUCHFUNCTION,
++			       touch_function, sizeof(touch_function));
++	if (ret)
++		dev_warn(&ts->spi->dev, "failed to enable touch function: %d\n", ret);
++
++	ret = sec_ts_spi_write(ts, SEC_TS_CMD_CLEAR_EVENT_STACK, NULL, 0);
++	if (ret)
++		dev_warn(&ts->spi->dev, "failed to clear event stack: %d\n", ret);
++
++	ret = sec_ts_spi_write(ts, SEC_TS_CMD_SENSE_ON, NULL, 0);
++	if (ret)
++		dev_warn(&ts->spi->dev, "failed to sense on: %d\n", ret);
++
++	return 0;
++}
++
++static void sec_ts_power_off(void *data)
++{
++	struct sec_ts_raven *ts = data;
++
++	sec_ts_spi_write(ts, SEC_TS_CMD_SENSE_OFF, NULL, 0);
++	gpiod_set_value_cansleep(ts->reset_gpio, 0);
++	regulator_bulk_disable(ARRAY_SIZE(ts->supplies), ts->supplies);
++}
++
++static void sec_ts_cancel_poll(void *data)
++{
++	struct sec_ts_raven *ts = data;
++
++	cancel_delayed_work_sync(&ts->poll_work);
++}
++
++static int sec_ts_probe(struct spi_device *spi)
++{
++	struct sec_ts_raven *ts;
++	int irq_flags;
++	int ret;
++
++	ts = devm_kzalloc(&spi->dev, sizeof(*ts), GFP_KERNEL);
++	if (!ts)
++		return -ENOMEM;
++
++	ts->spi = spi;
++	ts->max_x = SEC_TS_MAX_X_DEFAULT;
++	ts->max_y = SEC_TS_MAX_Y_DEFAULT;
++	mutex_init(&ts->io_lock);
++	mutex_init(&ts->event_lock);
++	spi_set_drvdata(spi, ts);
++
++	spi->mode &= ~(SPI_CPOL | SPI_CPHA);
++	spi->bits_per_word = 8;
++	ret = spi_setup(spi);
++	if (ret)
++		return ret;
++	ts->reset_gpio = devm_gpiod_get(&spi->dev, "sec,reset", GPIOD_OUT_LOW);
++	if (IS_ERR(ts->reset_gpio))
++		return dev_err_probe(&spi->dev, PTR_ERR(ts->reset_gpio),
++				     "failed to get reset gpio\n");
++
++	ts->irq_gpio = devm_gpiod_get(&spi->dev, "sec,irq", GPIOD_IN);
++	if (IS_ERR(ts->irq_gpio))
++		return dev_err_probe(&spi->dev, PTR_ERR(ts->irq_gpio),
++				     "failed to get irq gpio\n");
++
++	ts->switch_gpio = devm_gpiod_get(&spi->dev, "sec,switch",
++					 GPIOD_OUT_LOW);
++	if (IS_ERR(ts->switch_gpio))
++		return dev_err_probe(&spi->dev, PTR_ERR(ts->switch_gpio),
++				     "failed to select AP touchscreen bus\n");
++	spi->irq = gpiod_to_irq(ts->irq_gpio);
++	if (spi->irq < 0)
++		return dev_err_probe(&spi->dev, spi->irq, "failed to map irq\n");
++	ts->supplies[0].supply = "vdd";
++	ts->supplies[1].supply = "avdd";
++	ret = devm_regulator_bulk_get(&spi->dev, ARRAY_SIZE(ts->supplies),
++				      ts->supplies);
++	if (ret)
++		return dev_err_probe(&spi->dev, ret, "failed to get regulators\n");
++
++	ret = sec_ts_hw_init(ts);
++	if (ret)
++		return ret;
++
++	ret = devm_add_action_or_reset(&spi->dev, sec_ts_power_off, ts);
++	if (ret)
++		return ret;
++
++	ts->input = devm_input_allocate_device(&spi->dev);
++	if (!ts->input)
++		return -ENOMEM;
++
++	ts->input->name = "sec_touchscreen";
++	ts->input->id.bustype = BUS_SPI;
++	input_set_drvdata(ts->input, ts);
++
++	input_set_abs_params(ts->input, ABS_MT_POSITION_X, 0, ts->max_x, 0, 0);
++	input_set_abs_params(ts->input, ABS_MT_POSITION_Y, 0, ts->max_y, 0, 0);
++	input_set_abs_params(ts->input, ABS_MT_TOUCH_MAJOR, 0, 255, 0, 0);
++	input_set_abs_params(ts->input, ABS_MT_TOUCH_MINOR, 0, 255, 0, 0);
++	input_set_abs_params(ts->input, ABS_MT_PRESSURE, 0, 255, 0, 0);
++	touchscreen_parse_properties(ts->input, true, &ts->prop);
++
++	ret = input_mt_init_slots(ts->input, SEC_TS_MAX_FINGERS, INPUT_MT_DIRECT);
++	if (ret)
++		return ret;
++
++	ret = input_register_device(ts->input);
++	if (ret)
++		return ret;
++
++	irq_flags = irq_get_trigger_type(spi->irq);
++	if (!irq_flags)
++		irq_flags = IRQF_TRIGGER_LOW;
++	ret = devm_request_threaded_irq(&spi->dev, spi->irq, NULL,
++					sec_ts_irq_thread,
++					irq_flags | IRQF_ONESHOT,
++					SEC_TS_NAME, ts);
++	if (ret)
++		return dev_err_probe(&spi->dev, ret, "failed to request irq\n");
++
++	INIT_DELAYED_WORK(&ts->poll_work, sec_ts_poll_work);
++	ret = devm_add_action_or_reset(&spi->dev, sec_ts_cancel_poll, ts);
++	if (ret)
++		return ret;
++	schedule_delayed_work(&ts->poll_work,
++			      msecs_to_jiffies(SEC_TS_POLL_INTERVAL_MS));
++
++	return 0;
++}
++
++static const struct of_device_id sec_ts_of_match[] = {
++	{ .compatible = "sec,sec_ts" },
++	{ }
++};
++MODULE_DEVICE_TABLE(of, sec_ts_of_match);
++
++static struct spi_driver sec_ts_driver = {
++	.probe = sec_ts_probe,
++	.driver = {
++		.name = SEC_TS_NAME,
++		.of_match_table = sec_ts_of_match,
++	},
++};
++module_spi_driver(sec_ts_driver);
++
++MODULE_DESCRIPTION("Minimal Samsung sec_ts SPI touchscreen driver for Pixel 6 Pro");
++MODULE_LICENSE("GPL");
+-- 
+2.45.0

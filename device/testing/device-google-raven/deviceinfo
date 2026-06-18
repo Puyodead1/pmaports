@@ -9,10 +9,11 @@ deviceinfo_codename="google-raven"
 deviceinfo_year="2021"
 deviceinfo_dtb="exynos/google/gs101-raven"
 deviceinfo_arch="aarch64"
+deviceinfo_usb_idVendor="0x18d1"
+deviceinfo_usb_idProduct="0xd001"
 
 # Device related
 deviceinfo_chassis="handset"
-deviceinfo_drm="false"
 
 # Bootloader related
 deviceinfo_flash_method="fastboot"

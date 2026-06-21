@@ -10,3 +10,7 @@
 ufs-exynos
 dm-mod
 simplefb
+evdev
+libcomposite
+u_ether
+usb_f_ncm

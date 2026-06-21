@@ -1,0 +1,13 @@
+#!/bin/sh
+
+IP_ADDRESS=172.16.42.1/16
+FUNCTION=/sys/kernel/config/usb_gadget/g1/functions/ncm.usb0
+
+while true; do
+	iface="$(cat "$FUNCTION/ifname" 2>/dev/null || true)"
+	if [ -n "$iface" ] && [ -e "/sys/class/net/$iface" ]; then
+		ip link set "$iface" up 2>/dev/null || true
+		ip addr replace "$IP_ADDRESS" dev "$iface" 2>/dev/null || true
+	fi
+	sleep 2
+done

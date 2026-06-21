@@ -2,7 +2,7 @@ maintainer="Ingo Reitz <9l@9lo.re>"
 pkgname=device-google-raven
 pkgdesc="Google Pixel 6 Pro"
 pkgver=6
-pkgrel=0
+pkgrel=1
 url="https://postmarketos.org"
 license="MIT"
 arch="aarch64"
@@ -14,10 +14,19 @@ depends="
 	soc-google-gs101
 "
 makedepends="devicepkg-dev"
+subpackages="
+	$pkgname-phosh:phosh
+	$pkgname-usb-network:usb_network
+"
 source="
+	90-device-google-raven.preset
 	deviceinfo
 	kernel-cmdline.conf
 	modules-initfs
+	phoc.ini
+	phosh-osk-raven.gschema.override
+	raven-usb-network
+	raven-usb-network.service
 "
 
 build() {
@@ -28,8 +37,33 @@ package() {
 	devicepkg_package $startdir $pkgname
 }
 
+phosh() {
+	install_if="$pkgname=$pkgver-r$pkgrel postmarketos-ui-phosh"
+	install -Dm644 "$srcdir"/phoc.ini "$subpkgdir"/etc/phosh/phoc.ini
+	install -Dm644 "$srcdir"/phosh-osk-raven.gschema.override \
+		"$subpkgdir"/usr/share/glib-2.0/schemas/90-phosh-osk-raven.gschema.override
+}
+
+usb_network() {
+	pkgdesc="USB network recovery helper for Google Pixel 6 Pro"
+	depends="postmarketos-usb-moded-systemd"
+	install_if="$pkgname=$pkgver-r$pkgrel postmarketos-usb-moded-systemd"
+
+	install -Dm644 "$srcdir"/raven-usb-network.service \
+		"$subpkgdir"/usr/lib/systemd/system/raven-usb-network.service
+	install -Dm755 "$srcdir"/raven-usb-network \
+		"$subpkgdir"/usr/bin/raven-usb-network
+	install -Dm644 "$srcdir"/90-device-google-raven.preset \
+		"$subpkgdir"/usr/lib/systemd/system-preset/90-device-google-raven.preset
+}
+
 sha512sums="
-3c009c4e27b13f2263fd48599091138f488b8490e69d8c50df9a9c2d7b3cd9d0f7e4638a5a181c47585192eb66c627fb2d6fb76c9aca76b36987e6f32679adeb  deviceinfo
+54800ac4f146d3001ec3fd91fcab10cccfd95d967e623d3bdaccec962047e3306c7e1b0deca8fd0858bbcd8141615802850d51d6c656340d975d300b2ae2bce1  90-device-google-raven.preset
+f420a5fcb1607314dea88cce56816de10c4c8b60a3a95e4ba20107047a5c6d161906ca0c560f30f9cce44562f004c7044b1948215eae1fb2935ed3c37a9c9b7d  deviceinfo
 9ed1246237067259c1e533bbbda28de56836a8ebe2fe9dc079f038552062be6b7daf9e2f46261d293d7eb58fa2d3d52d516f98c309f6adcd01d910a0e436cfcf  kernel-cmdline.conf
-a5171dc7a4221a5a63c02820bac1e372c557cee72db9f777099f67eb272595fad6019f876cb47dd1bf455eeb3a45a74f215f2e8c44a6e1bf7cf3d7d9f49d98ad  modules-initfs
+c5b3c439c6dff6104167456da6af4b63658037cc3c10a4671faa13043db0941ab37830c5abd14ef9854b9cc36ab8c8e57244641b4a559db9f15d04a03c268365  modules-initfs
+c1828130a840c7f9948564ace81cf0bb12f577ab3c4275710370c9df05fc71c471bb2089632031ee3f28d35fbda05f2a93d21b7068bee926dbab921da8298205  phoc.ini
+5d2e64efc7e3abf98403262e5c79b245192cfd5ed6afbf5dbce4932e1d7b91c8d0defcf3d009ea7594a92251e02ac28fc7a55365a685b7e024ad720e03728e0d  phosh-osk-raven.gschema.override
+497f44a1f5b55cdd41a3d2887bdd274dfbabde46b298027c39b0c165024d646f30339478e5382612ac4946a2f45b905a2e06bd11bf1ed80e2e47842bbb0760ae  raven-usb-network
+716d5e7a03cd0173ffab81d53370485ee19def2663d0554f7e673dddfb41ea72c6c452ea5ae4087c0cab561507f8ba87871170cb4f38389a471525c6c34f5e46  raven-usb-network.service
 "

@@ -1,0 +1,13 @@
+[Unit]
+Description=Configure Raven USB developer network
+Requires=usb-moded.service
+After=usb-moded.service
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/raven-usb-network
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

@@ -1,7 +1,7 @@
 maintainer="Ingo Reitz <9l@9lo.re>"
 pkgname=linux-postmarketos-gs101
 pkgver=7.0.6
-pkgrel=0
+pkgrel=1
 pkgdesc="Google gs101 (Pixel 6 Series) close-to-mainline kernel"
 arch="aarch64"
 _carch="arm64"
@@ -12,13 +12,17 @@ options="!strip !check !tracedeps pmb:cross-native pmb:kconfigcheck-community"
 makedepends="
 	bison
 	clang
+	elfutils-dev
 	findutils
 	flex
 	lld
+	linux-headers
 	llvm
 	lz4
 	openssl-dev
+	pahole
 	perl
+	python3
 	zstd
 "
 
@@ -28,6 +32,7 @@ _config="config-$_flavor.$arch"
 source="
 	$pkgname-$_commit.tar.gz::https://github.com/gs101-mainline/linux/archive/$_commit.tar.gz
 	$_config
+	0009-input-sec-ts-add-raven-spi-touchscreen-driver.patch
 "
 builddir="$srcdir/linux-$_commit"
 _outdir="out"
@@ -64,5 +69,6 @@ package() {
 
 sha512sums="
 4d4a5568d3cc4c6ee957893a1168dd72274715e2491a19fcf314dcdf2fd5a466a088f2c4ca5d54578c68677f3899724643e07ac3f8fb1ee5fbe97f0c4c12dc91  linux-postmarketos-gs101-d28cfa4275b95e93f4b7a1e743de31b723bd21b8.tar.gz
-d8444741931ca26cdca20c959a3563eea777f6e3d2d378aeba9851fdb98adab8de2dd6b1466b61e49a9d89712ba7b066fb21a1b9e0a56e171507993b656ef6f6  config-postmarketos-gs101.aarch64
+895fd9f079f53f52e8136070f6e7600fc07cf23f9c88678c2e610fecf93c6c486c20add4d40455088cebdf1d4f961e9084efc97d9a439891d80fc46ec134d1bf  config-postmarketos-gs101.aarch64
+446fda752ef69973d37301e82dc0a13f14364ccf98c193ebcc80ad5fc3d2d0cd5d24cf5f692345acb4508360df763ab4193269b24c7df81a413c57926ca984ad  0009-input-sec-ts-add-raven-spi-touchscreen-driver.patch
 "

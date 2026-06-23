@@ -1,0 +1,39 @@
+# Reference: <https://postmarketos.org/devicepkg>
+maintainer="Puyodead1"
+pkgname=device-quanta-narnia
+pkgdesc="LeapFrog Epic Academy V3"
+pkgver=1
+pkgrel=0
+url="https://postmarketos.org"
+license="MIT"
+arch="armv7"
+options="!check !archcheck"
+depends="
+	linux-quanta-narnia
+	postmarketos-base
+	postmarketos-base-downstream
+	mkbootimg
+	mtk-mkimage
+"
+makedepends="devicepkg-dev"
+source="
+	deviceinfo
+	00-fbdev-rotate.conf
+	modules-initfs
+"
+
+build() {
+	devicepkg_build $startdir $pkgname
+}
+
+package() {
+	devicepkg_package $startdir $pkgname
+	install -Dm644 "$srcdir"/00-fbdev-rotate.conf \
+		"$pkgdir"/usr/share/X11/xorg.conf.d/00-fbdev-rotate.conf
+}
+
+sha512sums="
+f61329001e6b76a8d9608451a0ad49d89bc4590046c2573b1e48d04ecf6adc51370138e0ce6f283ef58419509936bfaaa2af27f5facbb1273c5d7be6bbad1538  deviceinfo
+9e231e1c27492a08414caacbfa2336f0e95e9a601447ad50f7b8cd5b7b5c90498fd3cf1e48f73641365271ac9271feea2e587961af6ea7d6bbba6e4e90a88b93  00-fbdev-rotate.conf
+e70bae17df23dcaaaea0e2d3616556f04baa23f8ee1357785c0f539bf97282d8ddff53953e155b72689bb73beb38c2da3d08de2a61e866684edfa10a6593885d  modules-initfs
+"

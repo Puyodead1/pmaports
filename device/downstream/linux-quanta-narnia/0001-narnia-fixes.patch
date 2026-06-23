@@ -1,0 +1,1323 @@
+diff --git a/arch/arm/boot/bootp/init.S b/arch/arm/boot/bootp/init.S
+index 78b50807..868eeeaa 100644
+--- a/arch/arm/boot/bootp/init.S
++++ b/arch/arm/boot/bootp/init.S
+@@ -16,7 +16,7 @@
+  *  size immediately following the kernel, we could build this into
+  *  a binary blob, and concatenate the zImage using the cat command.
+  */
+-		.section .start,#alloc,#execinstr
++		.section .start, "ax"
+ 		.type	_start, #function
+ 		.globl	_start
+ 
+diff --git a/arch/arm/boot/compressed/big-endian.S b/arch/arm/boot/compressed/big-endian.S
+index 25ab26f1..f22428e2 100644
+--- a/arch/arm/boot/compressed/big-endian.S
++++ b/arch/arm/boot/compressed/big-endian.S
+@@ -5,7 +5,7 @@
+  *  Author: Nicolas Pitre
+  */
+ 
+-	.section ".start", #alloc, #execinstr
++	.section ".start", "ax"
+ 
+ 	mrc	p15, 0, r0, c1, c0, 0	@ read control reg
+ 	orr	r0, r0, #(1 << 7)	@ enable big endian mode
+diff --git a/arch/arm/boot/compressed/head.S b/arch/arm/boot/compressed/head.S
+index d76329ed..da45d1bd 100644
+--- a/arch/arm/boot/compressed/head.S
++++ b/arch/arm/boot/compressed/head.S
+@@ -114,7 +114,7 @@
+ #endif
+ 		.endm
+ 
+-		.section ".start", #alloc, #execinstr
++		.section ".start", "ax"
+ /*
+  * sort out different calling conventions
+  */
+diff --git a/arch/arm/boot/compressed/piggy.lzma.S b/arch/arm/boot/compressed/piggy.lzma.S
+index d7e69cff..cfea81ae 100644
+--- a/arch/arm/boot/compressed/piggy.lzma.S
++++ b/arch/arm/boot/compressed/piggy.lzma.S
+@@ -1,4 +1,4 @@
+-	.section .piggydata,#alloc
++	.section .piggydata, "a"
+ 	.globl	input_data
+ input_data:
+ 	.incbin	"arch/arm/boot/compressed/piggy.lzma"
+diff --git a/arch/arm/boot/compressed/piggy.xzkern.S b/arch/arm/boot/compressed/piggy.xzkern.S
+index 5703f300..a135d3b5 100644
+--- a/arch/arm/boot/compressed/piggy.xzkern.S
++++ b/arch/arm/boot/compressed/piggy.xzkern.S
+@@ -1,4 +1,4 @@
+-	.section .piggydata,#alloc
++	.section .piggydata, "a"
+ 	.globl	input_data
+ input_data:
+ 	.incbin	"arch/arm/boot/compressed/piggy.xzkern"
+diff --git a/arch/arm/kernel/smp.c b/arch/arm/kernel/smp.c
+index 5c5842d6..62de84f3 100644
+--- a/arch/arm/kernel/smp.c
++++ b/arch/arm/kernel/smp.c
+@@ -220,7 +220,7 @@ void __cpuinit __cpu_die(unsigned int cpu)
+ 		pr_err("CPU%u: cpu didn't die\n", cpu);
+ 		return;
+ 	}
+-	printk(KERN_NOTICE "CPU%u: shutdown\n", cpu);
++//	printk(KERN_NOTICE "CPU%u: shutdown\n", cpu);
+ 
+ 	/*
+ 	 * platform_cpu_kill() is generally expected to do the powering off
+@@ -356,7 +356,7 @@ asmlinkage void __cpuinit secondary_start_kernel(void)
+ 	cpu_init();
+ 	aee_rr_rec_hoplug(cpu, 5, 0);
+ 
+-	printk("CPU%u: Booted secondary processor\n", cpu);
++//	printk("CPU%u: Booted secondary processor\n", cpu);
+ 
+ 	preempt_disable();
+ 	aee_rr_rec_hoplug(cpu, 6, 0);
+diff --git a/arch/arm/mach-mt8127/ca7_timer.c b/arch/arm/mach-mt8127/ca7_timer.c
+index c752bb1d..0ca334e4 100644
+--- a/arch/arm/mach-mt8127/ca7_timer.c
++++ b/arch/arm/mach-mt8127/ca7_timer.c
+@@ -289,7 +289,7 @@ static int __cpuinit generic_timer_setup(struct clock_event_device *clk)
+ {
+     struct clock_event_device **this_cpu_clk;
+ 
+-    pr_info("[ca7_timer]%s entry\n", __func__);
++//    pr_info("[ca7_timer]%s entry\n", __func__);
+     generic_timer_calibrate_rate();
+ 
+     write_cntp_ctl(0x0);
+diff --git a/arch/arm/mach-mt8127/include/mach/hotplug.h b/arch/arm/mach-mt8127/include/mach/hotplug.h
+index fa139f2a..413b7dbc 100644
+--- a/arch/arm/mach-mt8127/include/mach/hotplug.h
++++ b/arch/arm/mach-mt8127/include/mach/hotplug.h
+@@ -11,7 +11,8 @@
+ #define HOTPLUG_LOG_WITH_XLOG                           1
+ #define HOTPLUG_LOG_WITH_PRINTK                         2
+ 
+-#define HOTPLUG_LOG_PRINT                               HOTPLUG_LOG_WITH_PRINTK
++// #define HOTPLUG_LOG_PRINT                               HOTPLUG_LOG_WITH_PRINTK
++#define HOTPLUG_LOG_PRINT                               HOTPLUG_LOG_NONE
+ 
+ #if (HOTPLUG_LOG_PRINT == HOTPLUG_LOG_NONE)
+ #define HOTPLUG_INFO(fmt, args...)                    
+diff --git a/arch/arm/mach-mt8127/mt-smp.c b/arch/arm/mach-mt8127/mt-smp.c
+index 4df773d2..1fbd14c9 100644
+--- a/arch/arm/mach-mt8127/mt-smp.c
++++ b/arch/arm/mach-mt8127/mt-smp.c
+@@ -127,7 +127,7 @@ void __cpuinit mt_platform_secondary_init(unsigned int cpu)
+ {
+     struct wd_api *wd_api = NULL;
+ 
+-    printk(KERN_INFO "Slave cpu init\n");
++//    printk(KERN_INFO "Slave cpu init\n");
+     HOTPLUG_INFO("platform_secondary_init, cpu: %d\n", cpu);
+ 
+     mt_gic_secondary_init();
+@@ -170,7 +170,7 @@ static void __cpuinit mt_wakeup_cpu(int cpu)
+     }
+     else
+     {
+-    	printk("mt_wakeup_cpu: not first boot!(%d)\n", cpu);
++//    	printk("mt_wakeup_cpu: not first boot!(%d)\n", cpu);
+         mt65xx_reg_sync_writel(virt_to_phys(mt_secondary_startup), BOOT_ADDR);        
+ 
+ #if defined(CONFIG_TRUSTONIC_TEE_SUPPORT) || defined(CONFIG_MTK_IN_HOUSE_TEE_SUPPORT)
+@@ -189,7 +189,7 @@ int __cpuinit mt_boot_secondary(unsigned int cpu, struct task_struct *idle)
+ {
+     unsigned long timeout;
+ 
+-    printk(KERN_CRIT "Boot slave CPU\n");
++//    printk(KERN_INFO "Boot slave CPU\n");
+ 
+     atomic_inc(&hotplug_cpu_count);
+ 
+@@ -224,7 +224,7 @@ int __cpuinit mt_boot_secondary(unsigned int cpu, struct task_struct *idle)
+ #if !defined (CONFIG_TRUSTONIC_TEE_SUPPORT)
+             mt_wakeup_cpu(cpu);
+ #else //#if !defined (CONFIG_TRUSTONIC_TEE_SUPPORT)
+-            printk("mt_wakeup_cpu: not first boot!(%d)\n", cpu);
++//            printk("mt_wakeup_cpu: not first boot!(%d)\n", cpu);
+ 			//mt65xx_reg_sync_writel(virt_to_phys(mt_secondary_startup), BOOT_ADDR);
+ 			// fixme, to replace SMC with parameter of ns_slave_boot_addr
+             mt_secure_call(MC_FC_SET_RESET_VECTOR, virt_to_phys(mt_secondary_startup), cpu, 0);
+diff --git a/arch/arm/mach-mt8127/mt_dbg.c b/arch/arm/mach-mt8127/mt_dbg.c
+index 3391891a..14ad42e1 100644
+--- a/arch/arm/mach-mt8127/mt_dbg.c
++++ b/arch/arm/mach-mt8127/mt_dbg.c
+@@ -71,7 +71,7 @@ regs_hotplug_callback(struct notifier_block *nfb, unsigned long action, void *hc
+ //        printk(KERN_ALERT "In hotplug callback\n");
+ 	int i;
+         unsigned int cpu = (unsigned int) hcpu;
+-        printk("regs_hotplug_callback cpu = %d\n", cpu);
++//        printk("regs_hotplug_callback cpu = %d\n", cpu);
+         switch (action) {
+         case CPU_ONLINE:
+ 	case CPU_ONLINE_FROZEN:
+diff --git a/arch/arm/mach-mt8127/narnia/Makefile b/arch/arm/mach-mt8127/narnia/Makefile
+index b2dd1e79..338547c6 100644
+--- a/arch/arm/mach-mt8127/narnia/Makefile
++++ b/arch/arm/mach-mt8127/narnia/Makefile
+@@ -35,7 +35,7 @@ obj-y   +=  leds/
+ obj-y   +=  lens/
+ obj-y   +=  sound/
+ ###obj-y   +=  ssw/
+-obj-y   +=  touchpanel/
++#obj-y   +=  touchpanel/
+ obj-y   +=  vibrator/
+ #obj-y   +=  wmt/
+ ifeq ($(CONFIG_MTK_HDMI_SUPPORT),y)
+diff --git a/arch/arm/mm/proc-v7.S b/arch/arm/mm/proc-v7.S
+index 4ac6a962..b8d6d5c0 100644
+--- a/arch/arm/mm/proc-v7.S
++++ b/arch/arm/mm/proc-v7.S
+@@ -481,7 +481,7 @@ __v7_setup_stack:
+ 	string	cpu_elf_name, "v7"
+ 	.align
+ 
+-	.section ".proc.info.init", #alloc, #execinstr
++	.section ".proc.info.init", "ax"
+ 
+ 	/*
+ 	 * Standard v7 proc info content
+diff --git a/drivers/block/loop.c b/drivers/block/loop.c
+index 4a811654..6b3ab36d 100644
+--- a/drivers/block/loop.c
++++ b/drivers/block/loop.c
+@@ -885,6 +885,7 @@ static int loop_set_fd(struct loop_device *lo, fmode_t mode,
+ 	lo->lo_device = bdev;
+ 	lo->lo_flags = lo_flags;
+ 	lo->lo_backing_file = file;
++	file->f_flags &= ~O_DIRECT;
+ 	lo->transfer = transfer_none;
+ 	lo->ioctl = NULL;
+ 	lo->lo_sizelimit = 0;
+diff --git a/drivers/misc/mediatek/connectivity/combo/common/core/include/wmt_conf.h b/drivers/misc/mediatek/connectivity/combo/common/core/include/wmt_conf.h
+index 7c6f6750..8362f1af 100644
+--- a/drivers/misc/mediatek/connectivity/combo/common/core/include/wmt_conf.h
++++ b/drivers/misc/mediatek/connectivity/combo/common/core/include/wmt_conf.h
+@@ -19,7 +19,7 @@
+ ********************************************************************************
+ */
+ #define CUST_CFG_WMT "WMT.cfg"
+-#define CUST_CFG_WMT_PREFIX "/system/etc/firmware/"
++#define CUST_CFG_WMT_PREFIX "/lib/firmware/"
+ 
+ /*******************************************************************************
+ *                    E X T E R N A L   R E F E R E N C E S
+diff --git a/drivers/misc/mediatek/connectivity/combo/common/linux/stp_chrdev_ant.c b/drivers/misc/mediatek/connectivity/combo/common/linux/stp_chrdev_ant.c
+index dd3e4b72..4f8fb4dc 100644
+--- a/drivers/misc/mediatek/connectivity/combo/common/linux/stp_chrdev_ant.c
++++ b/drivers/misc/mediatek/connectivity/combo/common/linux/stp_chrdev_ant.c
+@@ -21,8 +21,8 @@ MODULE_LICENSE("Dual BSD/GPL");
+ #define ANT_DRIVER_NAME "mtk_stp_ANT_chrdev"
+ #define ANT_DEV_MAJOR 197	/* never used number */
+ static PINT8 ANT_BUILT_IN_PATCH_FILE_NAME;
+-static PINT8 ANT_BUILT_IN_PATCH_FILE_NAME_E1 = "/system/etc/firmware/ANT_RAM_CODE_E1.BIN";
+-static PINT8 ANT_BUILT_IN_PATCH_FILE_NAME_E2 = "/system/etc/firmware/ANT_RAM_CODE_E2.BIN";
++static PINT8 ANT_BUILT_IN_PATCH_FILE_NAME_E1 = "/lib/firmware/ANT_RAM_CODE_E1.BIN";
++static PINT8 ANT_BUILT_IN_PATCH_FILE_NAME_E2 = "/lib/firmware/ANT_RAM_CODE_E2.BIN";
+ 
+ #define PFX                         "[MTK-ANT] "
+ #define ANT_LOG_DBG                  3
+diff --git a/drivers/misc/mediatek/connectivity/conn_soc/common/core/include/wmt_conf.h b/drivers/misc/mediatek/connectivity/conn_soc/common/core/include/wmt_conf.h
+index 7ad0fca5..6e9971ef 100644
+--- a/drivers/misc/mediatek/connectivity/conn_soc/common/core/include/wmt_conf.h
++++ b/drivers/misc/mediatek/connectivity/conn_soc/common/core/include/wmt_conf.h
+@@ -33,7 +33,7 @@
+ ********************************************************************************
+ */
+ #define CUST_CFG_WMT "WMT_SOC.cfg"
+-#define CUST_CFG_WMT_PREFIX "/system/etc/firmware/"
++#define CUST_CFG_WMT_PREFIX "/lib/firmware/"
+ 
+ /*******************************************************************************
+ *                    E X T E R N A L   R E F E R E N C E S
+diff --git a/drivers/misc/mediatek/connectivity/conn_soc/common/include/wmt_plat.h b/drivers/misc/mediatek/connectivity/conn_soc/common/include/wmt_plat.h
+index 8af181f7..1dd64af2 100644
+--- a/drivers/misc/mediatek/connectivity/conn_soc/common/include/wmt_plat.h
++++ b/drivers/misc/mediatek/connectivity/conn_soc/common/include/wmt_plat.h
+@@ -65,7 +65,7 @@ extern UINT32 wmtPlatLogLvl;
+ #define CFG_WMT_PS_SUPPORT 1 /* moved from wmt_exp.h */
+ #define CFG_WMT_DUMP_INT_STATUS 0
+ #define CONSYS_ENALBE_SET_JTAG 1
+-#define CONSYS_WMT_REG_SUSPEND_CB_ENABLE 0
++#define CONSYS_WMT_REG_SUSPEND_CB_ENABLE 1
+ 
+ /*******************************************************************************
+ *                              C O N S T A N T S
+diff --git a/drivers/misc/mediatek/connectivity/conn_soc/drv_wlan/mt_wifi/wlan/mgmt/rlm_domain.c b/drivers/misc/mediatek/connectivity/conn_soc/drv_wlan/mt_wifi/wlan/mgmt/rlm_domain.c
+index 0f331b4c..85e95d29 100644
+--- a/drivers/misc/mediatek/connectivity/conn_soc/drv_wlan/mt_wifi/wlan/mgmt/rlm_domain.c
++++ b/drivers/misc/mediatek/connectivity/conn_soc/drv_wlan/mt_wifi/wlan/mgmt/rlm_domain.c
+@@ -521,7 +521,7 @@ DOMAIN_INFO_ENTRY arSupportedRegDomains_Passive[] = {
+         /* default passive channel table is empty */
+ 		g_u2CountryGroup0_Passive,	 0,
+ 		{
+-			{  81, BAND_2G4, CHNL_SPAN_5,	11,   0,  0 }, /* CH_SET_2G4_1_14 */
++			{  81, BAND_2G4, CHNL_SPAN_5,	1,   11,  0 }, /* CH_SET_2G4_1_14 */
+ 			{  82, BAND_2G4, CHNL_SPAN_5,	5,	  0,  0 },
+ 		
+ 			{ 115, BAND_5G,  CHNL_SPAN_20,	36,   0,  0 }, /* CH_SET_UNII_LOW_36_48 */
+diff --git a/drivers/misc/mediatek/connectivity/conn_soc/drv_wlan/mt_wifi/wlan/os/linux/gl_init.c b/drivers/misc/mediatek/connectivity/conn_soc/drv_wlan/mt_wifi/wlan/os/linux/gl_init.c
+index deac41f0..55865dd7 100644
+--- a/drivers/misc/mediatek/connectivity/conn_soc/drv_wlan/mt_wifi/wlan/os/linux/gl_init.c
++++ b/drivers/misc/mediatek/connectivity/conn_soc/drv_wlan/mt_wifi/wlan/os/linux/gl_init.c
+@@ -2981,7 +2981,7 @@ wlanProbe(
+ 							pucConfigBuf, WLAN_CFG_FILE_BUF_SIZE, &u4ConfigReadLen) == 0){
+ 					printk(KERN_ERR "CFG_FILE: Read /data/misc/wifi/wifi.cfg \n");
+ 				}
+-				else if(kalReadToFile("/etc/firmware/wifi.cfg", 
++				else if(kalReadToFile("/lib/firmware/wifi.cfg", 
+ 							pucConfigBuf, WLAN_CFG_FILE_BUF_SIZE, &u4ConfigReadLen) == 0){
+ 					printk(KERN_ERR "CFG_FILE: Read /etc/firmware/wifi.cfg \n");
+ 				}
+diff --git a/drivers/misc/mediatek/connectivity/conn_soc/drv_wlan/mt_wifi/wlan/os/linux/gl_kal.c b/drivers/misc/mediatek/connectivity/conn_soc/drv_wlan/mt_wifi/wlan/os/linux/gl_kal.c
+index c0285272..0ae2692a 100644
+--- a/drivers/misc/mediatek/connectivity/conn_soc/drv_wlan/mt_wifi/wlan/os/linux/gl_kal.c
++++ b/drivers/misc/mediatek/connectivity/conn_soc/drv_wlan/mt_wifi/wlan/os/linux/gl_kal.c
+@@ -842,38 +842,38 @@ kalFirmwareOpen (
+     case WMTHWVER_MT6620_E3:
+     case WMTHWVER_MT6620_E4:
+     case WMTHWVER_MT6620_E5:
+-        filp = filp_open("/etc/firmware/"CFG_FW_FILENAME, O_RDONLY, 0);
++        filp = filp_open("/lib/firmware/"CFG_FW_FILENAME, O_RDONLY, 0);
+         break;
+ 
+     case WMTHWVER_MT6620_E6:
+     default:
+-        filp = filp_open("/etc/firmware/"CFG_FW_FILENAME"_E6", O_RDONLY, 0);
++        filp = filp_open("/lib/firmware/"CFG_FW_FILENAME"_E6", O_RDONLY, 0);
+         break;
+     }
+ #elif defined(MT5931) && CFG_MULTI_ECOVER_SUPPORT
+     switch (wlanGetEcoVersion(prGlueInfo->prAdapter)) {
+     case HWVER_MT5931_E1:
+     case HWVER_MT5931_E2:
+-        filp = filp_open("/etc/firmware/"CFG_FW_FILENAME"_E2", O_RDONLY, 0);
++        filp = filp_open("/lib/firmware/"CFG_FW_FILENAME"_E2", O_RDONLY, 0);
+         break;
+     case HWVER_MT5931_E3:
+     default:
+-        filp = filp_open("/etc/firmware/"CFG_FW_FILENAME, O_RDONLY, 0);
++        filp = filp_open("/lib/firmware/"CFG_FW_FILENAME, O_RDONLY, 0);
+         break;
+     }
+ #elif defined(MT6628)
+-//    filp = filp_open("/etc/firmware/"CFG_FW_FILENAME"_MT6628", O_RDONLY, 0);
+-//    filp = filp_open("/etc/firmware/"CFG_FW_FILENAME"_MT6582", O_RDONLY, 0);
++//    filp = filp_open("/lib/firmware/"CFG_FW_FILENAME"_MT6628", O_RDONLY, 0);
++//    filp = filp_open("/lib/firmware/"CFG_FW_FILENAME"_MT6582", O_RDONLY, 0);
+ 	kalMemZero(aucFilePath, sizeof(aucFilePath));
+-	kalMemCopy(aucFilePath, "/etc/firmware/"CFG_FW_FILENAME"_",
+-		strlen("/etc/firmware/"CFG_FW_FILENAME"_"));
+-	glGetChipInfo(prGlueInfo, &aucFilePath[strlen("/etc/firmware/"CFG_FW_FILENAME"_")]);
++	kalMemCopy(aucFilePath, "/lib/firmware/"CFG_FW_FILENAME"_",
++		strlen("/lib/firmware/"CFG_FW_FILENAME"_"));
++	glGetChipInfo(prGlueInfo, &aucFilePath[strlen("/lib/firmware/"CFG_FW_FILENAME"_")]);
+ 
+ 	DBGLOG(INIT, TRACE, ("open file: %s\n", aucFilePath));
+ 
+     filp = filp_open(aucFilePath, O_RDONLY, 0);
+ #else
+-    filp = filp_open("/etc/firmware/"CFG_FW_FILENAME, O_RDONLY, 0);
++    filp = filp_open("/lib/firmware/"CFG_FW_FILENAME, O_RDONLY, 0);
+ #endif
+     if (IS_ERR(filp)) {
+         DBGLOG(INIT, INFO, ("Open FW image: %s failed\n", CFG_FW_FILENAME));
+diff --git a/drivers/misc/mediatek/i2c/mt8127/i2c.c b/drivers/misc/mediatek/i2c/mt8127/i2c.c
+index c2a392a2..a699dce1 100644
+--- a/drivers/misc/mediatek/i2c/mt8127/i2c.c
++++ b/drivers/misc/mediatek/i2c/mt8127/i2c.c
+@@ -54,6 +54,7 @@ static mt_i2c  *g_i2c[2];
+ #endif
+ /***********************************i2c debug********************************************************/
+ //#define I2C_DEBUG_FS
++#undef I2C_DEBUG_FS
+ #ifdef I2C_DEBUG_FS
+   #define PORT_COUNT 7
+   #define MESSAGE_COUNT 16
+@@ -367,10 +368,12 @@ static S32 _i2c_deal_result(mt_i2c *i2c)
+       I2CERR("I2C_HS_NACKERR\n");
+     if (i2c->irq_stat & I2C_ACKERR)
+       I2CERR("I2C_ACKERR\n");
++    #ifdef I2C_DEBUG_FS
+     if (i2c->filter_msg==FALSE) //TEST
+     {
+       _i2c_dump_info(i2c);
+-   }
++    }
++    #endif
+ 
+     spin_lock(&i2c->lock);
+     /*Reset i2c port*/
+diff --git a/drivers/misc/mediatek/i2c/mt8127/mt_i2c.h b/drivers/misc/mediatek/i2c/mt8127/mt_i2c.h
+index 84854f0d..fe16b3ab 100644
+--- a/drivers/misc/mediatek/i2c/mt8127/mt_i2c.h
++++ b/drivers/misc/mediatek/i2c/mt8127/mt_i2c.h
+@@ -6,7 +6,7 @@
+ #define I2CTAG                "[mt-i2c]"
+ #define I2CLOG(fmt, arg...)   printk(KERN_ERR I2CTAG fmt, ##arg)
+ #define I2CMSG(fmt, arg...)   printk(fmt, ##arg)
+-#define I2CERR(fmt, arg...)   printk(KERN_ERR I2CTAG "ERROR,%d: "fmt, __LINE__, ##arg)
++#define I2CERR(fmt, arg...)
+ #define I2CFUC(fmt, arg...)   printk(I2CTAG "%s\n", __FUNCTION__)
+ 
+ #define I2C_DRIVER_IN_KERNEL
+diff --git a/drivers/misc/mediatek/mmc-host/mt8127/mt_sd_misc.c b/drivers/misc/mediatek/mmc-host/mt8127/mt_sd_misc.c
+index 2dc1cb3e..057570f1 100644
+--- a/drivers/misc/mediatek/mmc-host/mt8127/mt_sd_misc.c
++++ b/drivers/misc/mediatek/mmc-host/mt8127/mt_sd_misc.c
+@@ -117,10 +117,13 @@ void msdc_check_init_done(void)
+ {
+     struct msdc_host *host = NULL;
+     host = msdc_get_host(MSDC_EMMC,1,0);
+-    BUG_ON(!host);
+-    BUG_ON(!host->mmc);
++    //BUG_ON(!host);
++    if (!host) { printk(KERN_ERR "msdc_check_init_done: host not ready\\n"); return; }
++    //BUG_ON(!host->mmc);
++    if (!host->mmc) { printk(KERN_ERR "msdc_check_init_done: mmc not ready\\n"); return; }
+     host->mmc->card_init_wait(host->mmc);
+-    BUG_ON(!host->mmc->card);
++    if (!host->mmc->card) { printk(KERN_ERR "msdc_check_init_done: card not ready\\n"); return; }
++    //BUG_ON(!host->mmc->card);
+     return;
+ }
+ 
+diff --git a/drivers/misc/mediatek/mtprof/bootprof.c b/drivers/misc/mediatek/mtprof/bootprof.c
+index 81391131..5a8168fb 100644
+--- a/drivers/misc/mediatek/mtprof/bootprof.c
++++ b/drivers/misc/mediatek/mtprof/bootprof.c
+@@ -111,7 +111,7 @@ void log_boot(char *str)
+ extern void mt_disable_uart(void);
+ static void bootup_finish(void)
+ {
+-	mt_disable_uart();
++	//mt_disable_uart();
+ }
+ #else
+ static void bootup_finish(void)
+diff --git a/drivers/misc/mediatek/mtprof/mt_printk_ctrl.c b/drivers/misc/mediatek/mtprof/mt_printk_ctrl.c
+index f2acc302..23a2311a 100644
+--- a/drivers/misc/mediatek/mtprof/mt_printk_ctrl.c
++++ b/drivers/misc/mediatek/mtprof/mt_printk_ctrl.c
+@@ -75,7 +75,7 @@ static unsigned long nsec_low(unsigned long long nsec)
+ /*                     Define Proc entry               */
+ /* --------------------------------------------------- */
+ MT_DEBUG_ENTRY(printk_ctrl);
+-int mt_need_uart_console = 0;
++int mt_need_uart_console = 1;
+ extern void mt_enable_uart(void);	/* printk.c */
+ extern void mt_disable_uart(void);	/* printk.c */
+ extern bool printk_disable_uart;
+diff --git a/drivers/misc/mediatek/power/mt8127/addon/mt6320_fuel_gauge_bq24196.c b/drivers/misc/mediatek/power/mt8127/addon/mt6320_fuel_gauge_bq24196.c
+index c92f1a18..59ad6ac4 100644
+--- a/drivers/misc/mediatek/power/mt8127/addon/mt6320_fuel_gauge_bq24196.c
++++ b/drivers/misc/mediatek/power/mt8127/addon/mt6320_fuel_gauge_bq24196.c
+@@ -329,11 +329,11 @@ void get_hw_chip_diff_trim_value(void)
+ 
+     chip_diff_trim_value_4_0 = reg_val_1 | (reg_val_2 << 3);
+     
+-    xlog_printk(ANDROID_LOG_INFO, "Power/Battery", "[Chip_Trim] Reg[0x%x]=0x%x, Reg[0x%x]=0x%x, chip_diff_trim_value_4_0=%d\n", 
++    xlog_printk(ANDROID_LOG_DEBUG, "Power/Battery", "[Chip_Trim] Reg[0x%x]=0x%x, Reg[0x%x]=0x%x, chip_diff_trim_value_4_0=%d\n", 
+         0x01C4, upmu_get_reg_value(0x01C4), 0x01C6, upmu_get_reg_value(0x01C6), chip_diff_trim_value_4_0);   
+     
+     #else
+-    xlog_printk(ANDROID_LOG_INFO, "Power/Battery", "[Chip_Trim] need check reg number\n");
++    xlog_printk(ANDROID_LOG_DEBUG, "Power/Battery", "[Chip_Trim] need check reg number\n");
+     #endif
+ 
+     switch(chip_diff_trim_value_4_0){       
+@@ -372,11 +372,11 @@ void get_hw_chip_diff_trim_value(void)
+         case 18:   chip_diff_trim_value = 930; break; 
+         case 17:   chip_diff_trim_value = 925; break; 
+         default:
+-            xlog_printk(ANDROID_LOG_INFO, "Power/Battery", "[Chip_Trim] Invalid value(%d)\n", chip_diff_trim_value_4_0);
++            xlog_printk(ANDROID_LOG_DEBUG, "Power/Battery", "[Chip_Trim] Invalid value(%d)\n", chip_diff_trim_value_4_0);
+             break;
+     }
+ 
+-    xlog_printk(ANDROID_LOG_INFO, "Power/Battery", "[Chip_Trim] %d,%d\n", 
++    xlog_printk(ANDROID_LOG_DEBUG, "Power/Battery", "[Chip_Trim] %d,%d\n", 
+         chip_diff_trim_value_4_0, chip_diff_trim_value);
+ }
+ 
+@@ -387,7 +387,7 @@ kal_int32 use_chip_trim_value(kal_int32 not_trim_val)
+     ret_val=((not_trim_val*chip_diff_trim_value)/1000);
+ 
+     if (Enable_FGADC_LOG == 1) {
+-    xlog_printk(ANDROID_LOG_INFO, "Power/Battery", "[use_chip_trim_value] %d -> %d\n", not_trim_val, ret_val);
++    xlog_printk(ANDROID_LOG_DEBUG, "Power/Battery", "[use_chip_trim_value] %d -> %d\n", not_trim_val, ret_val);
+     }
+     
+     return ret_val;
+@@ -595,7 +595,7 @@ kal_int32 fgauge_read_columb(void)
+         if(m>1000)
+         {
+             if (Enable_FGADC_LOG == 1){
+-                xlog_printk(ANDROID_LOG_INFO, "Power/Battery", "[fgauge_read_columb] fg_get_data_ready_status timeout 1 !\r\n");
++                xlog_printk(ANDROID_LOG_DEBUG, "Power/Battery", "[fgauge_read_columb] fg_get_data_ready_status timeout 1 !\r\n");
+             }
+             break;
+         }
+@@ -623,7 +623,7 @@ kal_int32 fgauge_read_columb(void)
+         if(m>1000)
+         {
+             if (Enable_FGADC_LOG == 1){
+-                xlog_printk(ANDROID_LOG_INFO, "Power/Battery", "[fgauge_read_columb] fg_get_data_ready_status timeout 2 !\r\n");
++                xlog_printk(ANDROID_LOG_DEBUG, "Power/Battery", "[fgauge_read_columb] fg_get_data_ready_status timeout 2 !\r\n");
+             }
+             break;
+         }
+@@ -720,7 +720,7 @@ kal_int32 fgauge_read_columb_reset(void)
+         if(m>1000)
+         {
+             if (Enable_FGADC_LOG == 1){
+-                xlog_printk(ANDROID_LOG_INFO, "Power/Battery", "[fgauge_read_columb] fg_get_data_ready_status timeout 1 !\r\n");
++                xlog_printk(ANDROID_LOG_DEBUG, "Power/Battery", "[fgauge_read_columb] fg_get_data_ready_status timeout 1 !\r\n");
+             }
+             break;
+         }
+@@ -748,7 +748,7 @@ kal_int32 fgauge_read_columb_reset(void)
+         if(m>1000)
+         {
+             if (Enable_FGADC_LOG == 1){
+-                xlog_printk(ANDROID_LOG_INFO, "Power/Battery", "[fgauge_read_columb] fg_get_data_ready_status timeout 2 !\r\n");
++                xlog_printk(ANDROID_LOG_DEBUG, "Power/Battery", "[fgauge_read_columb] fg_get_data_ready_status timeout 2 !\r\n");
+             }
+             break;
+         }
+@@ -863,7 +863,7 @@ kal_int32 fgauge_read_current(void)
+         if(m>1000)
+         {
+             if (Enable_FGADC_LOG == 1){
+-                xlog_printk(ANDROID_LOG_INFO, "Power/Battery", "[fgauge_read_current] fg_get_data_ready_status timeout 1 !\r\n");
++                xlog_printk(ANDROID_LOG_DEBUG, "Power/Battery", "[fgauge_read_current] fg_get_data_ready_status timeout 1 !\r\n");
+             }
+             break;
+         }
+@@ -886,7 +886,7 @@ kal_int32 fgauge_read_current(void)
+         if(m>1000)
+         {
+             if (Enable_FGADC_LOG == 1){
+-                xlog_printk(ANDROID_LOG_INFO, "Power/Battery", "[fgauge_read_current] fg_get_data_ready_status timeout 2 !\r\n");
++                xlog_printk(ANDROID_LOG_DEBUG, "Power/Battery", "[fgauge_read_current] fg_get_data_ready_status timeout 2 !\r\n");
+             }
+             break;
+         }
+@@ -1141,7 +1141,7 @@ void fgauge_read_avg_I_V(void)
+ 
+ //    if (Enable_FGADC_LOG == 1)
+     {
+-        xlog_printk(ANDROID_LOG_INFO, "Power/Battery", "[fgauge_read_avg_I_V] AVG voltage[%d], current[%d]\r\n", gFG_voltage, gFG_current);
++        xlog_printk(ANDROID_LOG_DEBUG, "Power/Battery", "[fgauge_read_avg_I_V] AVG voltage[%d], current[%d]\r\n", gFG_voltage, gFG_current);
+     }
+ }
+ 
+@@ -1254,7 +1254,7 @@ void fgauge_construct_battery_profile(kal_int32 temperature, BATTERY_PROFILE_STR
+     // Dumpt new battery profile
+     for (i = 0; i < saddles ; i++)
+     {
+-        xlog_printk(ANDROID_LOG_INFO, "Power/Battery", "<DOD,Voltage> at %d = <%d,%d>\r\n",
++        xlog_printk(ANDROID_LOG_DEBUG, "Power/Battery", "<DOD,Voltage> at %d = <%d,%d>\r\n",
+             temperature, (temp_profile_p+i)->percentage, (temp_profile_p+i)->voltage);
+     }
+     
+@@ -1402,7 +1402,7 @@ void fgauge_construct_r_table_profile(kal_int32 temperature, R_PROFILE_STRUC_P t
+     // Dumpt new r-table profile
+     for (i = 0; i < saddles ; i++)
+     {
+-        xlog_printk(ANDROID_LOG_INFO, "Power/Battery", "<Rbat,VBAT> at %d = <%d,%d>\r\n",
++        xlog_printk(ANDROID_LOG_DEBUG, "Power/Battery", "<Rbat,VBAT> at %d = <%d,%d>\r\n",
+             temperature, (temp_profile_p+i)->resistance, (temp_profile_p+i)->voltage);
+     }
+     
+@@ -1546,12 +1546,12 @@ void fg_qmax_update_for_aging(void)
+             // tuning
+             gFG_BATT_CAPACITY_aging = (gFG_BATT_CAPACITY_aging * 100) / AGING_TUNING_VALUE;
+             
+-            xlog_printk(ANDROID_LOG_INFO, "Power/Battery", "[fg_qmax_update_for_aging] need update : gFG_columb=%d, gFG_DOD0=%d, new_qmax=%d\r\n", 
++            xlog_printk(ANDROID_LOG_DEBUG, "Power/Battery", "[fg_qmax_update_for_aging] need update : gFG_columb=%d, gFG_DOD0=%d, new_qmax=%d\r\n", 
+                 gFG_columb, gFG_DOD0, gFG_BATT_CAPACITY_aging);
+         }
+         else
+         {
+-            xlog_printk(ANDROID_LOG_INFO, "Power/Battery", "[fg_qmax_update_for_aging] no update : gFG_columb=%d, gFG_DOD0=%d, new_qmax=%d\r\n", 
++            xlog_printk(ANDROID_LOG_DEBUG, "Power/Battery", "[fg_qmax_update_for_aging] no update : gFG_columb=%d, gFG_DOD0=%d, new_qmax=%d\r\n", 
+                 gFG_columb, gFG_DOD0, gFG_BATT_CAPACITY_aging);
+         }
+     }
+@@ -1912,7 +1912,7 @@ kal_int32 fgauge_read_d_by_v(kal_int32 volt_bat)
+     profile_p = fgauge_get_profile(TEMPERATURE_T);
+     if (profile_p == NULL)
+     {
+-        xlog_printk(ANDROID_LOG_INFO, "Power/Battery", "[FGADC] fgauge get ZCV profile : fail !\r\n");
++        xlog_printk(ANDROID_LOG_DEBUG, "Power/Battery", "[FGADC] fgauge get ZCV profile : fail !\r\n");
+         return 100;
+     }
+ 
+@@ -2018,7 +2018,7 @@ kal_int32 mtk_imp_tracking(kal_int32 ori_voltage, kal_int32 ori_current, kal_int
+         temp_voltage_2 = temp_voltage_1 + ret_compensate_value;
+ 
+         if (Enable_FGADC_LOG == 1) {
+-            xlog_printk(ANDROID_LOG_INFO, "Power/FGOAM", "[mtk_imp_tracking] temp_voltage_2=%d,temp_voltage_1=%d,ret_compensate_value=%d,gFG_resistance_bat=%d\n", 
++            xlog_printk(ANDROID_LOG_DEBUG, "Power/FGOAM", "[mtk_imp_tracking] temp_voltage_2=%d,temp_voltage_1=%d,ret_compensate_value=%d,gFG_resistance_bat=%d\n", 
+                 temp_voltage_2,temp_voltage_1,ret_compensate_value,gFG_resistance_bat);
+         }
+     }
+@@ -2030,7 +2030,7 @@ kal_int32 mtk_imp_tracking(kal_int32 ori_voltage, kal_int32 ori_current, kal_int
+     gFG_compensate_value = ret_compensate_value;
+ 
+     if (Enable_FGADC_LOG == 1) {
+-        xlog_printk(ANDROID_LOG_INFO, "Power/FGOAM", "[mtk_imp_tracking] temp_voltage_2=%d,temp_voltage_1=%d,ret_compensate_value=%d,gFG_resistance_bat=%d\n", 
++        xlog_printk(ANDROID_LOG_DEBUG, "Power/FGOAM", "[mtk_imp_tracking] temp_voltage_2=%d,temp_voltage_1=%d,ret_compensate_value=%d,gFG_resistance_bat=%d\n", 
+             temp_voltage_2,temp_voltage_1,ret_compensate_value,gFG_resistance_bat);    
+     }
+ 
+@@ -2048,12 +2048,12 @@ int get_hw_ocv(void)
+ #if defined(SWCHR_POWER_PATH)
+     adc_result_reg = upmu_get_rg_adc_out_wakeup_swchr_trim();
+     adc_result = (adc_result_reg*r_val_temp*1200)/1024;
+-    xlog_printk(ANDROID_LOG_INFO, "Power/FGOAM", "[oam] get_hw_ocv (swchr) : adc_result_reg=%d, adc_result=%d\n", 
++    xlog_printk(ANDROID_LOG_DEBUG, "Power/FGOAM", "[oam] get_hw_ocv (swchr) : adc_result_reg=%d, adc_result=%d\n", 
+         adc_result_reg, adc_result);
+ #else
+     adc_result_reg = upmu_get_rg_adc_out_wakeup_pchr_trim();
+     adc_result = (adc_result_reg*r_val_temp*1200)/1024;    
+-    xlog_printk(ANDROID_LOG_INFO, "Power/FGOAM", "[oam] get_hw_ocv (pchr) : adc_result_reg=%d, adc_result=%d\n", 
++    xlog_printk(ANDROID_LOG_DEBUG, "Power/FGOAM", "[oam] get_hw_ocv (pchr) : adc_result_reg=%d, adc_result=%d\n", 
+         adc_result_reg, adc_result);
+ #endif
+ 
+@@ -2074,11 +2074,11 @@ void oam_init(void)
+ 
+     if(oam_init_i == 0)
+     {
+-        xlog_printk(ANDROID_LOG_INFO, "Power/FGOAM", "[oam_init] oam_v_ocv_1,oam_v_ocv_2,oam_r_1,oam_r_2,oam_d0,oam_i_ori\n");
++        xlog_printk(ANDROID_LOG_DEBUG, "Power/FGOAM", "[oam_init] oam_v_ocv_1,oam_v_ocv_2,oam_r_1,oam_r_2,oam_d0,oam_i_ori\n");
+         oam_init_i=1;
+     }
+ 
+-    xlog_printk(ANDROID_LOG_INFO, "Power/FGOAM", "[oam_init] %d,%d,%d,%d,%d,%d\n", 
++    xlog_printk(ANDROID_LOG_DEBUG, "Power/FGOAM", "[oam_init] %d,%d,%d,%d,%d,%d\n", 
+         oam_v_ocv_1, oam_v_ocv_2, oam_r_1, oam_r_2, oam_d0, oam_i_ori);
+ }
+ 
+@@ -2145,7 +2145,7 @@ void oam_run(void)
+             case 4:    d5_count_time_rate = (((gFG_BATT_CAPACITY_aging*60*60/100/(650-50))*10)+5)/10;
+                        break;                       
+             default:
+-                xlog_printk(ANDROID_LOG_INFO, "Power/Battery", "[get_charger_type] Invalid value\n");
++                xlog_printk(ANDROID_LOG_DEBUG, "Power/Battery", "[get_charger_type] Invalid value\n");
+                 break;
+         }
+ 
+@@ -2195,31 +2195,31 @@ void oam_run(void)
+     }
+     
+     if (Enable_FGADC_LOG == 1) {
+-        xlog_printk(ANDROID_LOG_INFO, "Power/FGOAM", "[oam_run] %d,%d,%d,%d,%d,%d,%d\n", 
++        xlog_printk(ANDROID_LOG_DEBUG, "Power/FGOAM", "[oam_run] %d,%d,%d,%d,%d,%d,%d\n", 
+             d5_count, d5_count_time, oam_d_3_pre, oam_d_3, oam_d_4_pre, oam_d_4, oam_d_5);    
+     }
+ 
+     if(oam_run_i == 0)
+     {
+         if (Enable_FGADC_LOG == 1) {
+-            xlog_printk(ANDROID_LOG_INFO, "Power/FGOAM", "[oam_run] oam_i_1,oam_i_2,oam_car_1,oam_car_2,oam_d_1,oam_d_2,oam_v_ocv_1,oam_d_3,oam_r_1,oam_v_ocv_2,oam_r_2,vol_bat,vol_bat_hw_ocv,d_hw_ocv\n");
++            xlog_printk(ANDROID_LOG_DEBUG, "Power/FGOAM", "[oam_run] oam_i_1,oam_i_2,oam_car_1,oam_car_2,oam_d_1,oam_d_2,oam_v_ocv_1,oam_d_3,oam_r_1,oam_v_ocv_2,oam_r_2,vol_bat,vol_bat_hw_ocv,d_hw_ocv\n");
+         }
+         oam_run_i=1;
+     }    
+ 
+     if (Enable_FGADC_LOG == 1) {
+-        xlog_printk(ANDROID_LOG_INFO, "Power/FGOAM", "[oam_run] %d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d\n", 
++        xlog_printk(ANDROID_LOG_DEBUG, "Power/FGOAM", "[oam_run] %d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d\n", 
+             oam_i_1,oam_i_2,oam_car_1,oam_car_2,oam_d_1,oam_d_2,oam_v_ocv_1,oam_d_3,oam_r_1,oam_v_ocv_2,oam_r_2,vol_bat,vol_bat_hw_ocv,d_hw_ocv);    
+     }
+ 
+     if (Enable_FGADC_LOG == 1) {
+-        xlog_printk(ANDROID_LOG_INFO, "Power/FGOAM", "[oam_total] %d,%d,%d,%d,%d,%d,%d,%d,%d,%d\n",
++        xlog_printk(ANDROID_LOG_DEBUG, "Power/FGOAM", "[oam_total] %d,%d,%d,%d,%d,%d,%d,%d,%d,%d\n",
+             gFG_capacity_by_c, gFG_capacity_by_v, gfg_percent_check_point,
+             oam_d_1, oam_d_2, oam_d_3, oam_d_4, oam_d_5, gFG_capacity_by_c_init, d_hw_ocv);
+     }
+ 
+     if (Enable_FGADC_LOG == 2) {
+-        xlog_printk(ANDROID_LOG_INFO, "Power/FGOAM", "[oam_total_s] %d,%d,%d,%d,%d,%d,%d,%d,%d,%d\n",
++        xlog_printk(ANDROID_LOG_DEBUG, "Power/FGOAM", "[oam_total_s] %d,%d,%d,%d,%d,%d,%d,%d,%d,%d\n",
+             gFG_capacity_by_c,        // 1
+             gFG_capacity_by_v,        // 2
+             gfg_percent_check_point,  // 3
+@@ -2234,7 +2234,7 @@ void oam_run(void)
+     }
+ 
+     if (Enable_FGADC_LOG == 1) {
+-        xlog_printk(ANDROID_LOG_INFO, "Power/FGOAM", "[oam_total_s_err] %d,%d,%d,%d,%d,%d,%d\n",
++        xlog_printk(ANDROID_LOG_DEBUG, "Power/FGOAM", "[oam_total_s_err] %d,%d,%d,%d,%d,%d,%d\n",
+             (gFG_capacity_by_c - gFG_capacity_by_v), 
+             (gFG_capacity_by_c - gfg_percent_check_point),
+             (gFG_capacity_by_c - (100-oam_d_1)), 
+@@ -2377,7 +2377,7 @@ void fgauge_Normal_Mode_Work(void)
+             //use get_hw_ocv-----------------------------------------------------------------
+             gFG_voltage = get_hw_ocv();        
+             gFG_capacity_by_v = fgauge_read_capacity_by_v();
+-            xlog_printk(ANDROID_LOG_INFO, "Power/Battery", "[FGADC] get_hw_ocv=%d, SOC=%d\n", 
++            xlog_printk(ANDROID_LOG_DEBUG, "Power/Battery", "[FGADC] get_hw_ocv=%d, SOC=%d\n", 
+             gFG_voltage, gFG_capacity_by_v);
+             //-------------------------------------------------------------------------------
+ #endif			
+@@ -2392,7 +2392,7 @@ void fgauge_Normal_Mode_Work(void)
+ 					gFG_capacity_by_v = g_rtc_fg_soc;			 
+ 				}
+ 			
+-				xlog_printk(ANDROID_LOG_INFO, "Power/Battery", "[FGADC] [1] g_rtc_fg_soc=%d, gFG_capacity_by_v=%d\n", 
++				xlog_printk(ANDROID_LOG_DEBUG, "Power/Battery", "[FGADC] [1] g_rtc_fg_soc=%d, gFG_capacity_by_v=%d\n", 
+ 					g_rtc_fg_soc, gFG_capacity_by_v);
+ 			}
+ 			else
+@@ -2405,7 +2405,7 @@ void fgauge_Normal_Mode_Work(void)
+ 					gFG_capacity_by_v = g_rtc_fg_soc;			 
+ 				}
+ 			
+-				xlog_printk(ANDROID_LOG_INFO, "Power/Battery", "[FGADC] [2] g_rtc_fg_soc=%d, gFG_capacity_by_v=%d\n", 
++				xlog_printk(ANDROID_LOG_DEBUG, "Power/Battery", "[FGADC] [2] g_rtc_fg_soc=%d, gFG_capacity_by_v=%d\n", 
+ 					g_rtc_fg_soc, gFG_capacity_by_v);
+ 			}		
+             //-------------------------------------------------------------------------------
+@@ -2424,21 +2424,21 @@ void fgauge_Normal_Mode_Work(void)
+         bat_volt_check_point = gFG_capacity;
+         gfg_percent_check_point = bat_volt_check_point;        
+ 
+-        xlog_printk(ANDROID_LOG_INFO, "Power/Battery", "[FGADC] update DOD0 after booting %d s\r\n", (MAX_BOOTING_TIME_FGCURRENT));
++        xlog_printk(ANDROID_LOG_DEBUG, "Power/Battery", "[FGADC] update DOD0 after booting %d s\r\n", (MAX_BOOTING_TIME_FGCURRENT));
+ 
+         //OAM (only auxadc mode)        
+         oam_init();    
+ 
+         #if defined(CHANGE_TRACKING_POINT)
+         gFG_15_vlot = fgauge_read_v_by_capacity( (100-g_tracking_point) );
+-        xlog_printk(ANDROID_LOG_INFO, "Power/Battery", "[FGADC] gFG_15_vlot = %dmV\r\n", gFG_15_vlot);        
++        xlog_printk(ANDROID_LOG_DEBUG, "Power/Battery", "[FGADC] gFG_15_vlot = %dmV\r\n", gFG_15_vlot);        
+         #else
+         //gFG_15_vlot = fgauge_read_v_by_capacity(86); //14%
+         gFG_15_vlot = fgauge_read_v_by_capacity( (100-g_tracking_point) );
+-        xlog_printk(ANDROID_LOG_INFO, "Power/Battery", "[FGADC] gFG_15_vlot = %dmV\r\n", gFG_15_vlot);        
++        xlog_printk(ANDROID_LOG_DEBUG, "Power/Battery", "[FGADC] gFG_15_vlot = %dmV\r\n", gFG_15_vlot);        
+         if( (gFG_15_vlot > 3800) || (gFG_15_vlot < 3600) ) 
+         {
+-            xlog_printk(ANDROID_LOG_INFO, "Power/Battery", "[FGADC] gFG_15_vlot(%d) over range, reset to 3700\r\n", gFG_15_vlot);
++            xlog_printk(ANDROID_LOG_DEBUG, "Power/Battery", "[FGADC] gFG_15_vlot(%d) over range, reset to 3700\r\n", gFG_15_vlot);
+             gFG_15_vlot = 3700;
+         }
+         #endif        
+@@ -2446,7 +2446,7 @@ void fgauge_Normal_Mode_Work(void)
+         //double check
+         if(gFG_current_auto_detect_R_fg_total == 0)
+         {
+-            xlog_printk(ANDROID_LOG_INFO, "Power/Battery", "gFG_current_auto_detect_R_fg_total=0, need double check [2]\n");
++            xlog_printk(ANDROID_LOG_DEBUG, "Power/Battery", "gFG_current_auto_detect_R_fg_total=0, need double check [2]\n");
+             
+             gFG_current_auto_detect_R_fg_count = 0;
+             
+@@ -2464,7 +2464,7 @@ void fgauge_Normal_Mode_Work(void)
+             
+             batteryBufferFirst = KAL_FALSE; // for init array values when measuring by AUXADC 
+             
+-            xlog_printk(ANDROID_LOG_INFO, "Power/Battery", "[FGADC] Detect NO Rfg, use AUXADC report. (%d=%d/%d)(%d)\r\n", 
++            xlog_printk(ANDROID_LOG_DEBUG, "Power/Battery", "[FGADC] Detect NO Rfg, use AUXADC report. (%d=%d/%d)(%d)\r\n", 
+                 gFG_current_auto_detect_R_fg_result, gFG_current_auto_detect_R_fg_total,
+                 gFG_current_auto_detect_R_fg_count, gForceADCsolution);            
+         }
+@@ -2474,13 +2474,13 @@ void fgauge_Normal_Mode_Work(void)
+             {
+                 gForceADCsolution=0;
+         
+-                xlog_printk(ANDROID_LOG_INFO, "Power/Battery", "[FGADC] Detect Rfg, use FG report. (%d=%d/%d)(%d)\r\n", 
++                xlog_printk(ANDROID_LOG_DEBUG, "Power/Battery", "[FGADC] Detect Rfg, use FG report. (%d=%d/%d)(%d)\r\n", 
+                 gFG_current_auto_detect_R_fg_result, gFG_current_auto_detect_R_fg_total,
+                 gFG_current_auto_detect_R_fg_count, gForceADCsolution);
+         }
+             else
+             {
+-                xlog_printk(ANDROID_LOG_INFO, "Power/Battery", "[FGADC] Detect Rfg, but use AUXADC report. due to gForceADCsolution=%d \r\n", 
++                xlog_printk(ANDROID_LOG_DEBUG, "Power/Battery", "[FGADC] Detect Rfg, but use AUXADC report. due to gForceADCsolution=%d \r\n", 
+                     gForceADCsolution);
+             }
+         }
+@@ -2657,7 +2657,7 @@ void fgauge_initialization(void)
+ 
+     //reset HW FG
+     ret=pmic_config_interface(FGADC_CON0, 0x7100, 0xFF00, 0x0);
+-    xlog_printk(ANDROID_LOG_INFO, "Power/Battery", "******** [fgauge_initialization] reset HW FG!\n" );
++    xlog_printk(ANDROID_LOG_DEBUG, "Power/Battery", "******** [fgauge_initialization] reset HW FG!\n" );
+     
+ // 2. SW algorithm initialization
+     gFG_voltage = fgauge_read_voltage();            
+@@ -2678,7 +2678,7 @@ void fgauge_initialization(void)
+     if(g_ocv_lookup_done == 0)
+     {
+         gFG_capacity = fgauge_read_capacity(0);
+-        xlog_printk(ANDROID_LOG_INFO, "Power/Battery", "g_ocv_loopup_done is 0, do fgauge_read_capacity(0)\n" );
++        xlog_printk(ANDROID_LOG_DEBUG, "Power/Battery", "g_ocv_loopup_done is 0, do fgauge_read_capacity(0)\n" );
+     }
+     else
+     {
+@@ -2729,28 +2729,28 @@ void FGADC_Reset_SW_Parameter(void)
+     kal_uint32 ret = 0;
+ 
+ #if 0
+-    xlog_printk(ANDROID_LOG_INFO, "Power/Battery", "[FGADC] FGADC_Reset_SW_Parameter : Todo \r\n");
++    xlog_printk(ANDROID_LOG_DEBUG, "Power/Battery", "[FGADC] FGADC_Reset_SW_Parameter : Todo \r\n");
+ #else
+-    xlog_printk(ANDROID_LOG_INFO, "Power/Battery", "[FGADC] FGADC_Reset_SW_Parameter : Start \r\n");
++    xlog_printk(ANDROID_LOG_DEBUG, "Power/Battery", "[FGADC] FGADC_Reset_SW_Parameter : Start \r\n");
+     gFG_SW_CoulombCounter = 0;    
+     while(val_car != 0x0)
+     {        
+         ret=pmic_config_interface(FGADC_CON0, 0x7100, 0xFF00, 0x0);        
+         gFG_columb = fgauge_read_columb_reset();
+         val_car = gFG_columb;
+-        xlog_printk(ANDROID_LOG_INFO, "Power/Battery", "#");
++        xlog_printk(ANDROID_LOG_DEBUG, "Power/Battery", "#");
+     }
+     gFG_columb = 0;
+-    xlog_printk(ANDROID_LOG_INFO, "Power/Battery", "[FGADC] FGADC_Reset_SW_Parameter : Done \r\n");
++    xlog_printk(ANDROID_LOG_DEBUG, "Power/Battery", "[FGADC] FGADC_Reset_SW_Parameter : Done \r\n");
+ 
+     if(g_Calibration_FG==1)
+     {                        
+         gFG_DOD0 = 0;
+-        xlog_printk(ANDROID_LOG_INFO, "Power/Battery", "[FGADC] FG Calibration DOD0=%d and DOD1=%d \r\n", gFG_DOD0, gFG_DOD1);
++        xlog_printk(ANDROID_LOG_DEBUG, "Power/Battery", "[FGADC] FG Calibration DOD0=%d and DOD1=%d \r\n", gFG_DOD0, gFG_DOD1);
+     }
+     else
+     {
+-        xlog_printk(ANDROID_LOG_INFO, "Power/Battery", "[FGADC] Update DOD0(%d) by %d \r\n", gFG_DOD0, gFG_DOD1);
++        xlog_printk(ANDROID_LOG_DEBUG, "Power/Battery", "[FGADC] Update DOD0(%d) by %d \r\n", gFG_DOD0, gFG_DOD1);
+         gFG_DOD0 = gFG_DOD1;        
+     }
+ #endif
+@@ -2810,7 +2810,7 @@ kal_int32 get_dynamic_period(int first_use, int first_wakeup_time, int battery_c
+         if(g_car_sleep > g_car_wakeup)
+         {
+             g_car_sleep = g_car_wakeup;
+-            xlog_printk(ANDROID_LOG_INFO, "Power/Battery", "[get_dynamic_period] reset g_car_sleep\r\n");
++            xlog_printk(ANDROID_LOG_DEBUG, "Power/Battery", "[get_dynamic_period] reset g_car_sleep\r\n");
+         }
+ 
+         I_sleep = ((g_car_wakeup-g_car_sleep)*3600)/g_last_time; // unit: second
+@@ -2842,7 +2842,7 @@ kal_int32 get_dynamic_period(int first_use, int first_wakeup_time, int battery_c
+         if(ret_val == 0)
+             ret_val = first_wakeup_time;
+ 
+-        xlog_printk(ANDROID_LOG_INFO, "Power/Battery", "[get_dynamic_period] g_car_instant=%d, g_car_wakeup=%d, g_car_sleep=%d, I_sleep=%d, gFG_BATT_CAPACITY=%d, g_last_time=%d, new_time=%d\r\n", 
++        xlog_printk(ANDROID_LOG_DEBUG, "Power/Battery", "[get_dynamic_period] g_car_instant=%d, g_car_wakeup=%d, g_car_sleep=%d, I_sleep=%d, gFG_BATT_CAPACITY=%d, g_last_time=%d, new_time=%d\r\n", 
+             g_car_instant, g_car_wakeup, g_car_sleep, I_sleep, gFG_BATT_CAPACITY, g_last_time, new_time);        
+         
+         //update parameter
+@@ -2851,7 +2851,7 @@ kal_int32 get_dynamic_period(int first_use, int first_wakeup_time, int battery_c
+     }    
+ #else
+     ret_val = first_wakeup_time;
+-    xlog_printk(ANDROID_LOG_INFO, "Power/Battery", "[get_dynamic_period] ret_val = %d\n", first_wakeup_time);
++    xlog_printk(ANDROID_LOG_DEBUG, "Power/Battery", "[get_dynamic_period] ret_val = %d\n", first_wakeup_time);
+ #endif
+ 
+     return ret_val;
+@@ -2906,7 +2906,7 @@ void FGADC_thread_kthread(void)
+ 
+     //if (Enable_FGADC_LOG >= 1) 
+     //{    
+-        xlog_printk(ANDROID_LOG_INFO, "Power/Battery", "[FGADC] %d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d\r\n",
++        xlog_printk(ANDROID_LOG_DEBUG, "Power/Battery", "[FGADC] %d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d\r\n",
+             gFG_Is_Charging,gFG_current,
+             gFG_SW_CoulombCounter,gFG_columb,gFG_voltage,gFG_capacity_by_v,gFG_capacity_by_c,gFG_capacity_by_c_init, 
+             gFG_BATT_CAPACITY,gFG_BATT_CAPACITY_aging,gFG_compensate_value,gFG_ori_voltage,OCV_BOARD_COMPESATE,R_FG_BOARD_SLOPE,
+@@ -2923,7 +2923,7 @@ void FGADC_thread_kthread(void)
+         //double check
+         if(gFG_current_auto_detect_R_fg_total == 0)
+         {
+-            xlog_printk(ANDROID_LOG_INFO, "Power/Battery", "gFG_current_auto_detect_R_fg_total=0, need double check\n");
++            xlog_printk(ANDROID_LOG_DEBUG, "Power/Battery", "gFG_current_auto_detect_R_fg_total=0, need double check\n");
+             
+             gFG_current_auto_detect_R_fg_count = 0;
+             
+@@ -2965,18 +2965,18 @@ ssize_t fgadc_log_write( struct file *filp, const char __user *buff,
+                         unsigned long len, void *data )
+ {
+     if (copy_from_user( &proc_fgadc_data, buff, len )) {
+-        xlog_printk(ANDROID_LOG_INFO, "Power/Battery", "fgadc_log_write error.\n");
++        xlog_printk(ANDROID_LOG_DEBUG, "Power/Battery", "fgadc_log_write error.\n");
+         return -EFAULT;
+     }
+ 
+     if (proc_fgadc_data[0] == '1') {
+-        xlog_printk(ANDROID_LOG_INFO, "Power/Battery", "enable FGADC driver log system\n");
++        xlog_printk(ANDROID_LOG_DEBUG, "Power/Battery", "enable FGADC driver log system\n");
+         Enable_FGADC_LOG = 1;
+     } else if (proc_fgadc_data[0] == '2') {
+-        xlog_printk(ANDROID_LOG_INFO, "Power/Battery", "enable FGADC driver log system:2\n");
++        xlog_printk(ANDROID_LOG_DEBUG, "Power/Battery", "enable FGADC driver log system:2\n");
+         Enable_FGADC_LOG = 2;    
+     } else {
+-        xlog_printk(ANDROID_LOG_INFO, "Power/Battery", "Disable FGADC driver log system\n");
++        xlog_printk(ANDROID_LOG_DEBUG, "Power/Battery", "Disable FGADC driver log system\n");
+         Enable_FGADC_LOG = 0;
+     }
+     
+@@ -2990,11 +2990,11 @@ int init_proc_log_fg(void)
+     
+     if (proc_entry_fgadc == NULL) {
+         ret = -ENOMEM;
+-          xlog_printk(ANDROID_LOG_INFO, "Power/Battery", "init_proc_log_fg: Couldn't create proc entry\n");
++          xlog_printk(ANDROID_LOG_DEBUG, "Power/Battery", "init_proc_log_fg: Couldn't create proc entry\n");
+     } else {
+         proc_entry_fgadc->write_proc = fgadc_log_write;
+         //proc_entry->owner = THIS_MODULE;
+-        xlog_printk(ANDROID_LOG_INFO, "Power/Battery", "init_proc_log_fg loaded.\n");
++        xlog_printk(ANDROID_LOG_DEBUG, "Power/Battery", "init_proc_log_fg loaded.\n");
+     }
+   
+     return ret;
+@@ -3016,9 +3016,9 @@ static ssize_t show_FG_Current(struct device *dev,struct device_attribute *attr,
+     {
+         gFG_current_inout_battery = gFG_current;
+     }
+-    xlog_printk(ANDROID_LOG_INFO, "Power/Battery", "[FG] %d\r\n", gFG_current_inout_battery);
++    xlog_printk(ANDROID_LOG_DEBUG, "Power/Battery", "[FG] %d\r\n", gFG_current_inout_battery);
+     //-----------------------------------------------
+-    xlog_printk(ANDROID_LOG_INFO, "Power/Battery", "[FG] gFG_current_inout_battery : %d\n", gFG_current_inout_battery);
++    xlog_printk(ANDROID_LOG_DEBUG, "Power/Battery", "[FG] gFG_current_inout_battery : %d\n", gFG_current_inout_battery);
+     return sprintf(buf, "%d\n", gFG_current_inout_battery);
+ }
+ static ssize_t store_FG_Current(struct device *dev,struct device_attribute *attr, const char *buf, size_t size)
+@@ -3032,7 +3032,7 @@ static DEVICE_ATTR(FG_Current, 0664, show_FG_Current, store_FG_Current);
+ ///////////////////////////////////////////////////////////////////////////////////////////
+ static ssize_t show_FG_g_fg_dbg_bat_volt(struct device *dev,struct device_attribute *attr, char *buf)
+ {    
+-    xlog_printk(ANDROID_LOG_INFO, "Power/Battery", "[FG] g_fg_dbg_bat_volt : %d\n", g_fg_dbg_bat_volt);
++    xlog_printk(ANDROID_LOG_DEBUG, "Power/Battery", "[FG] g_fg_dbg_bat_volt : %d\n", g_fg_dbg_bat_volt);
+     return sprintf(buf, "%d\n", g_fg_dbg_bat_volt);
+ }
+ static ssize_t store_FG_g_fg_dbg_bat_volt(struct device *dev,struct device_attribute *attr, const char *buf, size_t size)
+@@ -3043,7 +3043,7 @@ static DEVICE_ATTR(FG_g_fg_dbg_bat_volt, 0664, show_FG_g_fg_dbg_bat_volt, store_
+ //-------------------------------------------------------------------------------------------
+ static ssize_t show_FG_g_fg_dbg_bat_current(struct device *dev,struct device_attribute *attr, char *buf)
+ {    
+-    xlog_printk(ANDROID_LOG_INFO, "Power/Battery", "[FG] g_fg_dbg_bat_current : %d\n", g_fg_dbg_bat_current);
++    xlog_printk(ANDROID_LOG_DEBUG, "Power/Battery", "[FG] g_fg_dbg_bat_current : %d\n", g_fg_dbg_bat_current);
+     return sprintf(buf, "%d\n", g_fg_dbg_bat_current);
+ }
+ static ssize_t store_FG_g_fg_dbg_bat_current(struct device *dev,struct device_attribute *attr, const char *buf, size_t size)
+@@ -3054,7 +3054,7 @@ static DEVICE_ATTR(FG_g_fg_dbg_bat_current, 0664, show_FG_g_fg_dbg_bat_current,
+ //-------------------------------------------------------------------------------------------
+ static ssize_t show_FG_g_fg_dbg_bat_zcv(struct device *dev,struct device_attribute *attr, char *buf)
+ {    
+-    xlog_printk(ANDROID_LOG_INFO, "Power/Battery", "[FG] g_fg_dbg_bat_zcv : %d\n", g_fg_dbg_bat_zcv);
++    xlog_printk(ANDROID_LOG_DEBUG, "Power/Battery", "[FG] g_fg_dbg_bat_zcv : %d\n", g_fg_dbg_bat_zcv);
+     return sprintf(buf, "%d\n", g_fg_dbg_bat_zcv);
+ }
+ static ssize_t store_FG_g_fg_dbg_bat_zcv(struct device *dev,struct device_attribute *attr, const char *buf, size_t size)
+@@ -3065,7 +3065,7 @@ static DEVICE_ATTR(FG_g_fg_dbg_bat_zcv, 0664, show_FG_g_fg_dbg_bat_zcv, store_FG
+ //-------------------------------------------------------------------------------------------
+ static ssize_t show_FG_g_fg_dbg_bat_temp(struct device *dev,struct device_attribute *attr, char *buf)
+ {    
+-    xlog_printk(ANDROID_LOG_INFO, "Power/Battery", "[FG] g_fg_dbg_bat_temp : %d\n", g_fg_dbg_bat_temp);
++    xlog_printk(ANDROID_LOG_DEBUG, "Power/Battery", "[FG] g_fg_dbg_bat_temp : %d\n", g_fg_dbg_bat_temp);
+     return sprintf(buf, "%d\n", g_fg_dbg_bat_temp);
+ }
+ static ssize_t store_FG_g_fg_dbg_bat_temp(struct device *dev,struct device_attribute *attr, const char *buf, size_t size)
+@@ -3076,7 +3076,7 @@ static DEVICE_ATTR(FG_g_fg_dbg_bat_temp, 0664, show_FG_g_fg_dbg_bat_temp, store_
+ //-------------------------------------------------------------------------------------------
+ static ssize_t show_FG_g_fg_dbg_bat_r(struct device *dev,struct device_attribute *attr, char *buf)
+ {    
+-    xlog_printk(ANDROID_LOG_INFO, "Power/Battery", "[FG] g_fg_dbg_bat_r : %d\n", g_fg_dbg_bat_r);
++    xlog_printk(ANDROID_LOG_DEBUG, "Power/Battery", "[FG] g_fg_dbg_bat_r : %d\n", g_fg_dbg_bat_r);
+     return sprintf(buf, "%d\n", g_fg_dbg_bat_r);
+ }
+ static ssize_t store_FG_g_fg_dbg_bat_r(struct device *dev,struct device_attribute *attr, const char *buf, size_t size)
+@@ -3087,7 +3087,7 @@ static DEVICE_ATTR(FG_g_fg_dbg_bat_r, 0664, show_FG_g_fg_dbg_bat_r, store_FG_g_f
+ //-------------------------------------------------------------------------------------------
+ static ssize_t show_FG_g_fg_dbg_bat_car(struct device *dev,struct device_attribute *attr, char *buf)
+ {    
+-    xlog_printk(ANDROID_LOG_INFO, "Power/Battery", "[FG] g_fg_dbg_bat_car : %d\n", g_fg_dbg_bat_car);
++    xlog_printk(ANDROID_LOG_DEBUG, "Power/Battery", "[FG] g_fg_dbg_bat_car : %d\n", g_fg_dbg_bat_car);
+     return sprintf(buf, "%d\n", g_fg_dbg_bat_car);
+ }
+ static ssize_t store_FG_g_fg_dbg_bat_car(struct device *dev,struct device_attribute *attr, const char *buf, size_t size)
+@@ -3098,7 +3098,7 @@ static DEVICE_ATTR(FG_g_fg_dbg_bat_car, 0664, show_FG_g_fg_dbg_bat_car, store_FG
+ //-------------------------------------------------------------------------------------------
+ static ssize_t show_FG_g_fg_dbg_bat_qmax(struct device *dev,struct device_attribute *attr, char *buf)
+ {    
+-    xlog_printk(ANDROID_LOG_INFO, "Power/Battery", "[FG] g_fg_dbg_bat_qmax : %d\n", g_fg_dbg_bat_qmax);
++    xlog_printk(ANDROID_LOG_DEBUG, "Power/Battery", "[FG] g_fg_dbg_bat_qmax : %d\n", g_fg_dbg_bat_qmax);
+     return sprintf(buf, "%d\n", g_fg_dbg_bat_qmax);
+ }
+ static ssize_t store_FG_g_fg_dbg_bat_qmax(struct device *dev,struct device_attribute *attr, const char *buf, size_t size)
+@@ -3109,7 +3109,7 @@ static DEVICE_ATTR(FG_g_fg_dbg_bat_qmax, 0664, show_FG_g_fg_dbg_bat_qmax, store_
+ //-------------------------------------------------------------------------------------------
+ static ssize_t show_FG_g_fg_dbg_d0(struct device *dev,struct device_attribute *attr, char *buf)
+ {    
+-    xlog_printk(ANDROID_LOG_INFO, "Power/Battery", "[FG] g_fg_dbg_d0 : %d\n", g_fg_dbg_d0);
++    xlog_printk(ANDROID_LOG_DEBUG, "Power/Battery", "[FG] g_fg_dbg_d0 : %d\n", g_fg_dbg_d0);
+     return sprintf(buf, "%d\n", g_fg_dbg_d0);
+ }
+ static ssize_t store_FG_g_fg_dbg_d0(struct device *dev,struct device_attribute *attr, const char *buf, size_t size)
+@@ -3120,7 +3120,7 @@ static DEVICE_ATTR(FG_g_fg_dbg_d0, 0664, show_FG_g_fg_dbg_d0, store_FG_g_fg_dbg_
+ //-------------------------------------------------------------------------------------------
+ static ssize_t show_FG_g_fg_dbg_d1(struct device *dev,struct device_attribute *attr, char *buf)
+ {    
+-    xlog_printk(ANDROID_LOG_INFO, "Power/Battery", "[FG] g_fg_dbg_d1 : %d\n", g_fg_dbg_d1);
++    xlog_printk(ANDROID_LOG_DEBUG, "Power/Battery", "[FG] g_fg_dbg_d1 : %d\n", g_fg_dbg_d1);
+     return sprintf(buf, "%d\n", g_fg_dbg_d1);
+ }
+ static ssize_t store_FG_g_fg_dbg_d1(struct device *dev,struct device_attribute *attr, const char *buf, size_t size)
+@@ -3131,7 +3131,7 @@ static DEVICE_ATTR(FG_g_fg_dbg_d1, 0664, show_FG_g_fg_dbg_d1, store_FG_g_fg_dbg_
+ //-------------------------------------------------------------------------------------------
+ static ssize_t show_FG_g_fg_dbg_percentage(struct device *dev,struct device_attribute *attr, char *buf)
+ {    
+-    xlog_printk(ANDROID_LOG_INFO, "Power/Battery", "[FG] g_fg_dbg_percentage : %d\n", g_fg_dbg_percentage);
++    xlog_printk(ANDROID_LOG_DEBUG, "Power/Battery", "[FG] g_fg_dbg_percentage : %d\n", g_fg_dbg_percentage);
+     return sprintf(buf, "%d\n", g_fg_dbg_percentage);
+ }
+ static ssize_t store_FG_g_fg_dbg_percentage(struct device *dev,struct device_attribute *attr, const char *buf, size_t size)
+@@ -3142,7 +3142,7 @@ static DEVICE_ATTR(FG_g_fg_dbg_percentage, 0664, show_FG_g_fg_dbg_percentage, st
+ //-------------------------------------------------------------------------------------------
+ static ssize_t show_FG_g_fg_dbg_percentage_fg(struct device *dev,struct device_attribute *attr, char *buf)
+ {    
+-    xlog_printk(ANDROID_LOG_INFO, "Power/Battery", "[FG] g_fg_dbg_percentage_fg : %d\n", g_fg_dbg_percentage_fg);
++    xlog_printk(ANDROID_LOG_DEBUG, "Power/Battery", "[FG] g_fg_dbg_percentage_fg : %d\n", g_fg_dbg_percentage_fg);
+     return sprintf(buf, "%d\n", g_fg_dbg_percentage_fg);
+ }
+ static ssize_t store_FG_g_fg_dbg_percentage_fg(struct device *dev,struct device_attribute *attr, const char *buf, size_t size)
+@@ -3153,7 +3153,7 @@ static DEVICE_ATTR(FG_g_fg_dbg_percentage_fg, 0664, show_FG_g_fg_dbg_percentage_
+ //-------------------------------------------------------------------------------------------
+ static ssize_t show_FG_g_fg_dbg_percentage_voltmode(struct device *dev,struct device_attribute *attr, char *buf)
+ {    
+-    xlog_printk(ANDROID_LOG_INFO, "Power/Battery", "[FG] g_fg_dbg_percentage_voltmode : %d\n", g_fg_dbg_percentage_voltmode);
++    xlog_printk(ANDROID_LOG_DEBUG, "Power/Battery", "[FG] g_fg_dbg_percentage_voltmode : %d\n", g_fg_dbg_percentage_voltmode);
+     return sprintf(buf, "%d\n", g_fg_dbg_percentage_voltmode);
+ }
+ static ssize_t store_FG_g_fg_dbg_percentage_voltmode(struct device *dev,struct device_attribute *attr, const char *buf, size_t size)
+@@ -3170,9 +3170,9 @@ static int mt6320_fgadc_probe(struct platform_device *dev)
+     int ret_device_file = 0;
+ 
+ #if defined(CONFIG_POWER_EXT)
+-    xlog_printk(ANDROID_LOG_INFO, "Power/Battery", "[FGADC] INIT : EVB \n");
++    xlog_printk(ANDROID_LOG_DEBUG, "Power/Battery", "[FGADC] INIT : EVB \n");
+ #else
+-    xlog_printk(ANDROID_LOG_INFO, "Power/Battery", "[FGADC] MT6320 FGADC driver probe!! \n" );
++    xlog_printk(ANDROID_LOG_DEBUG, "Power/Battery", "[FGADC] MT6320 FGADC driver probe!! \n" );
+ 
+     /* FG driver init */
+     //fgauge_initialization();
+@@ -3202,14 +3202,14 @@ static int mt6320_fgadc_probe(struct platform_device *dev)
+ 
+ static int mt6320_fgadc_remove(struct platform_device *dev)    
+ {
+-    xlog_printk(ANDROID_LOG_INFO, "Power/Battery", "[FGADC] MT6320 FGADC driver remove!! \n" );
++    xlog_printk(ANDROID_LOG_DEBUG, "Power/Battery", "[FGADC] MT6320 FGADC driver remove!! \n" );
+ 
+     return 0;
+ }
+ 
+ static void mt6320_fgadc_shutdown(struct platform_device *dev)    
+ {
+-    xlog_printk(ANDROID_LOG_INFO, "Power/Battery", "[FGADC] MT6320 FGADC driver shutdown!! \n" );        
++    xlog_printk(ANDROID_LOG_DEBUG, "Power/Battery", "[FGADC] MT6320 FGADC driver shutdown!! \n" );        
+ }
+ 
+ static int mt6320_fgadc_suspend(struct platform_device *dev, pm_message_t state)    
+@@ -3259,17 +3259,17 @@ static int __init mt6320_fgadc_init(void)
+     
+     ret = platform_device_register(&MT6320_fgadc_device);
+     if (ret) {
+-        xlog_printk(ANDROID_LOG_INFO, "Power/Battery", "****[mt6320_fgadc_driver] Unable to device register(%d)\n", ret);
++        xlog_printk(ANDROID_LOG_DEBUG, "Power/Battery", "****[mt6320_fgadc_driver] Unable to device register(%d)\n", ret);
+         return ret;
+     }
+     
+     ret = platform_driver_register(&mt6320_fgadc_driver);
+     if (ret) {
+-        xlog_printk(ANDROID_LOG_INFO, "Power/Battery", "****[mt6320_fgadc_driver] Unable to register driver (%d)\n", ret);
++        xlog_printk(ANDROID_LOG_DEBUG, "Power/Battery", "****[mt6320_fgadc_driver] Unable to register driver (%d)\n", ret);
+         return ret;
+     }
+ 
+-    xlog_printk(ANDROID_LOG_INFO, "Power/Battery", "****[mt6320_fgadc_driver] Initialization : DONE \n");
++    xlog_printk(ANDROID_LOG_DEBUG, "Power/Battery", "****[mt6320_fgadc_driver] Initialization : DONE \n");
+ 
+     return 0;
+ 
+diff --git a/drivers/misc/mediatek/power/mt8127/tbl_helper_func.c b/drivers/misc/mediatek/power/mt8127/tbl_helper_func.c
+index a932e20d..18d36d9f 100644
+--- a/drivers/misc/mediatek/power/mt8127/tbl_helper_func.c
++++ b/drivers/misc/mediatek/power/mt8127/tbl_helper_func.c
+@@ -35,7 +35,7 @@
+ #ifdef CONFIG_USB_MTK_HDRC_HCD
+ void tbl_charger_otg_vbus(int mode)
+ {
+-    xlog_printk(ANDROID_LOG_INFO, "Power/Battery", "[tbl_charger_otg_vbus] mode = %d\n", mode);
++    xlog_printk(ANDROID_LOG_DEBUG, "Power/Battery", "[tbl_charger_otg_vbus] mode = %d\n", mode);
+ 
+     if(mode&0xFF)
+     {
+diff --git a/drivers/misc/mediatek/uart/mt8127/platform_uart.c b/drivers/misc/mediatek/uart/mt8127/platform_uart.c
+index 35f126d8..ba601f67 100644
+--- a/drivers/misc/mediatek/uart/mt8127/platform_uart.c
++++ b/drivers/misc/mediatek/uart/mt8127/platform_uart.c
+@@ -1749,7 +1749,7 @@ void mtk_uart_enable_sleep(struct mtk_uart *uart)
+ {
+     u32 base = uart->base;
+     reg_sync_writel(0x1, UART_SLEEP_EN);
+-    printk("SLEEP_EN = 0x%x\n",UART_READ32(UART_SLEEP_EN));
++//    printk("SLEEP_EN = 0x%x\n",UART_READ32(UART_SLEEP_EN));
+ }
+ /*---------------------------------------------------------------------------*/
+ void mtk_uart_init_debug_spinlock(void)
+diff --git a/drivers/misc/mediatek/uart/uart.c b/drivers/misc/mediatek/uart/uart.c
+index 8bcec9e1..b49df4d2 100644
+--- a/drivers/misc/mediatek/uart/uart.c
++++ b/drivers/misc/mediatek/uart/uart.c
+@@ -1837,7 +1837,7 @@ static void mtk_uart_set_termios(struct uart_port *port,
+         printk(KERN_NOTICE "MTK Software Flow Control\n");
+         mode = UART_FC_SW;
+     } else if (termios->c_iflag & (IXON | IXOFF | IXANY)) {
+-        printk(KERN_NOTICE "Linux default SW Flow Control\n");
++//        printk(KERN_NOTICE "Linux default SW Flow Control\n");
+         mode = UART_FC_NONE;    
+     } else {
+         printk(KERN_NOTICE "No Flow Control\n");
+diff --git a/drivers/misc/mediatek/video/mt8127/mt8127/dpi_drv.c b/drivers/misc/mediatek/video/mt8127/mt8127/dpi_drv.c
+index dbd22d32..1b2416f7 100644
+--- a/drivers/misc/mediatek/video/mt8127/mt8127/dpi_drv.c
++++ b/drivers/misc/mediatek/video/mt8127/mt8127/dpi_drv.c
+@@ -218,7 +218,7 @@ static irqreturn_t _DPI_InterruptHandler(int irq, void *dev_id)
+ 	dpi_vsync_irq_count++;
+ 	if(dpi_vsync_irq_count > 120)
+ 	{
+-		printk("dpi vsync\n");
++//		printk("dpi vsync\n");
+ 		dpi_vsync_irq_count = 0;
+ 	}
+         if(dpiIntCallback)
+diff --git a/drivers/misc/mediatek/video/mt8127/mtkfb.c b/drivers/misc/mediatek/video/mt8127/mtkfb.c
+index f8f4c8f6..097eceee 100644
+--- a/drivers/misc/mediatek/video/mt8127/mtkfb.c
++++ b/drivers/misc/mediatek/video/mt8127/mtkfb.c
+@@ -63,6 +63,8 @@
+ 
+ //#undef pr_info
+ //#define pr_info printk
++#undef pr_info
++#define pr_info(fmt, args...) do {} while (0)
+ 
+ unsigned int EnableVSyncLog = 0;
+ 
+@@ -840,9 +842,9 @@ static int mtkfb_pan_display_impl(struct fb_var_screeninfo *var, struct fb_info
+         layerInfo.tgt_offset_y = 0;
+         layerInfo.tgt_width = var->xres;
+         layerInfo.tgt_height = var->yres;
+-        layerInfo.layer_rotation = MTK_FB_ORIENTATION_0;
++        layerInfo.layer_rotation = MTK_FB_ORIENTATION_180;
+         layerInfo.layer_type = LAYER_2D;
+-        layerInfo.video_rotation = MTK_FB_ORIENTATION_0;
++        layerInfo.video_rotation = MTK_FB_ORIENTATION_180;
+         layerInfo.isTdshp = TRUE;  // set to 1, will go through tdshp first, then layer blending, then to color
+         layerInfo.next_buff_idx = -1;
+         layerInfo.identity = 0;
+@@ -1193,7 +1195,7 @@ static int mtkfb_set_par(struct fb_info *fbi)
+     fb_layer.tgt_offset_x = fb_layer.tgt_offset_y = 0;
+ 
+ //    fb_layer.src_color_key = 0;
+-    fb_layer.layer_rotation = MTK_FB_ORIENTATION_0;
++    fb_layer.layer_rotation = MTK_FB_ORIENTATION_180;
+     fb_layer.layer_type = LAYER_2D;
+ 
+     mutex_lock(&OverlaySettingMutex);
+diff --git a/drivers/misc/mediatek/wdk/wd_api.c b/drivers/misc/mediatek/wdk/wd_api.c
+index c382f7a7..b94fcf7a 100644
+--- a/drivers/misc/mediatek/wdk/wd_api.c
++++ b/drivers/misc/mediatek/wdk/wd_api.c
+@@ -88,7 +88,7 @@ static int wd_cpu_hot_plug_on_notify(int cpu)
+ 	int res = 0;
+ 	wk_cpu_update_bit_flag(cpu, 1);
+ 	mtk_wdt_restart(WD_TYPE_NOLOCK);	/* for KICK external wdt */
+-	printk("WD wd_cpu_hot_plug_on_notify kick ext wd\n");
++//	printk("WD wd_cpu_hot_plug_on_notify kick ext wd\n");
+ 
+ 	return res;
+ }
+diff --git a/drivers/misc/mediatek/wdk/wd_common_drv.c b/drivers/misc/mediatek/wdk/wd_common_drv.c
+index 51c1bf48..8a246019 100644
+--- a/drivers/misc/mediatek/wdk/wd_common_drv.c
++++ b/drivers/misc/mediatek/wdk/wd_common_drv.c
+@@ -230,7 +230,7 @@ void kicker_cpu_bind(int cpu)
+ 		//kthread_bind(wk_tsk[cpu], cpu);
+ 		WARN_ON_ONCE(set_cpus_allowed_ptr(wk_tsk[cpu], cpumask_of(cpu)) < 0);
+ 		
+-		printk("[wdk]bind kicker thread[%d] to cpu[%d]\n",wk_tsk[cpu]->pid,cpu);
++//		printk("[wdk]bind kicker thread[%d] to cpu[%d]\n",wk_tsk[cpu]->pid,cpu);
+ 		wake_up_process(wk_tsk[cpu]);
+ 	}
+ }
+@@ -570,7 +570,7 @@ static int __cpuinit wk_cpu_callback(struct notifier_block *nfb, unsigned long a
+ 		mpcore_wdt_restart(WD_TYPE_NORMAL);
+ #endif
+ 
+-		printk("[WDK]cpu %d plug on kick wdt\n", hotcpu);
++//		printk("[WDK]cpu %d plug on kick wdt\n", hotcpu);
+ 		break;
+ #ifdef CONFIG_HOTPLUG_CPU
+ #ifdef CONFIG_LOCAL_WDT
+@@ -584,14 +584,14 @@ static int __cpuinit wk_cpu_callback(struct notifier_block *nfb, unsigned long a
+ 
+ 		mtk_wdt_restart(WD_TYPE_NORMAL);	/* for KICK external wdt */
+ #ifdef CONFIG_LOCAL_WDT
+-		printk("[WDK]cpu %d plug off kick local wdt\n", hotcpu);
++//		printk("[WDK]cpu %d plug off kick local wdt\n", hotcpu);
+ 		/* kick local wdt */
+ 		/* mpcore_wdt_restart(WD_TYPE_NORMAL); */
+ 		/* disable local watchdog */
+ 		mpcore_wk_wdt_stop();
+ #endif
+ 		wk_cpu_update_bit_flag(hotcpu, 0);
+-		printk("[WDK]cpu %d plug off, kick wdt\n", hotcpu);
++//		printk("[WDK]cpu %d plug off, kick wdt\n", hotcpu);
+ 		break;
+ #endif				/* CONFIG_HOTPLUG_CPU */
+ 	}
+diff --git a/drivers/misc/mediatek/xlog/xlog_printk.c b/drivers/misc/mediatek/xlog/xlog_printk.c
+index d2aacc43..d9ddd89b 100644
+--- a/drivers/misc/mediatek/xlog/xlog_printk.c
++++ b/drivers/misc/mediatek/xlog/xlog_printk.c
+@@ -60,7 +60,7 @@ int __xlog_output(int level, const char *tag, const char *fmt, va_list args)
+ 	r = printk("%s", printk_string);
+ 
+ 	if (level == ANDROID_LOG_FATAL) {
+-		BUG();
++		// BUG();
+ 	}
+ 	return r;
+ }
+diff --git a/drivers/mmc/core/mmc.c b/drivers/mmc/core/mmc.c
+index f03d8fa7..5f715bf2 100644
+--- a/drivers/mmc/core/mmc.c
++++ b/drivers/mmc/core/mmc.c
+@@ -303,7 +303,7 @@ static int mmc_read_ext_csd(struct mmc_card *card, u8 *ext_csd)
+ 	}
+ 
+ 	card->ext_csd.rev = ext_csd[EXT_CSD_REV];
+-	if (card->ext_csd.rev > 7) {
++	if (card->ext_csd.rev > 8) {
+ 		pr_err("%s: unrecognised EXT_CSD revision %d\n",
+ 			mmc_hostname(card->host), card->ext_csd.rev);
+ 		err = -EINVAL;
+diff --git a/drivers/power/mediatek/battery_common.c b/drivers/power/mediatek/battery_common.c
+index 192fd6b6..395b1122 100644
+--- a/drivers/power/mediatek/battery_common.c
++++ b/drivers/power/mediatek/battery_common.c
+@@ -2298,11 +2298,11 @@ void mt_battery_GetBatteryData(void)
+ 	if (g_battery_soc_ready == KAL_FALSE)
+ 		g_battery_soc_ready = KAL_TRUE;
+ 
+-	battery_xlog_printk(BAT_LOG_CRTI,
+-			    "AvgVbat=(%d),bat_vol=(%d),AvgI=(%d),I=(%d),VChr=(%d),AvgT=(%d),T=(%d),pre_SOC=(%d),SOC=(%d),ZCV=(%d)\n",
+-			    BMT_status.bat_vol, bat_vol, BMT_status.ICharging, ICharging,
+-			    BMT_status.charger_vol, BMT_status.temperature, temperature,
+-			    previous_SOC, BMT_status.SOC, BMT_status.ZCV);
++	// battery_xlog_printk(BAT_LOG_CRTI,
++	// 		    "AvgVbat=(%d),bat_vol=(%d),AvgI=(%d),I=(%d),VChr=(%d),AvgT=(%d),T=(%d),pre_SOC=(%d),SOC=(%d),ZCV=(%d)\n",
++	// 		    BMT_status.bat_vol, bat_vol, BMT_status.ICharging, ICharging,
++	// 		    BMT_status.charger_vol, BMT_status.temperature, temperature,
++	// 		    previous_SOC, BMT_status.SOC, BMT_status.ZCV);
+ 
+ 
+ }
+diff --git a/drivers/power/mediatek/linear_charging.c b/drivers/power/mediatek/linear_charging.c
+index 5a16b86d..766422d5 100644
+--- a/drivers/power/mediatek/linear_charging.c
++++ b/drivers/power/mediatek/linear_charging.c
+@@ -317,7 +317,7 @@ static void mtk_ta_vchr_select(int i,int ta_v_chr_candidate[], int ta_charging_c
+ 
+ 	current_vchr = battery_meter_get_charger_voltage();
+ 	if(ta_current_level != 5000 && current_vchr >= 4900) {	/* pattern error before, so reset vchr to 5V */
+-		battery_xlog_printk(BAT_LOG_CRTI, "mtk_ta_vchr_select() : curr_VChr=%d, ta_current_level=%d\n",current_vchr,ta_current_level);
++		//battery_xlog_printk(BAT_LOG_CRTI, "mtk_ta_vchr_select() : curr_VChr=%d, ta_current_level=%d\n",current_vchr,ta_current_level);
+ 
+ 		mtk_ta_reset_vchr();
+ 	}
+diff --git a/include/linux/time_log.h b/include/linux/time_log.h
+index 1770e9bc..471f4889 100644
+--- a/include/linux/time_log.h
++++ b/include/linux/time_log.h
+@@ -2,7 +2,7 @@
+ #include <linux/types.h>
+ 
+ extern bool printk_disable_uart;
+-#if 1
++#if 0
+ #define TIME_LOG_START() \
+     { \
+     	 unsigned long long _start_time = 0; \
+@@ -28,4 +28,4 @@ extern bool printk_disable_uart;
+ #else
+ #define TIME_LOG_START()  do{} while(0)
+ #define TIME_LOG_END(X...) do{} while(0)
+-#endif
+\ No newline at end of file
++#endif
+diff --git a/include/mach/charging.h b/include/mach/charging.h
+index d3b98bdd..86a3c578 100644
+--- a/include/mach/charging.h
++++ b/include/mach/charging.h
+@@ -42,12 +42,13 @@
+ #define BAT_LOG_CRTI 1
+ #define BAT_LOG_FULL 2
+ 
+-#define battery_xlog_printk(num, fmt, args...) \
+-  do { \
+-    if (Enable_BATDRV_LOG >= (int)num) { \
+-      pr_notice(fmt, ##args); \
+-    } \
+-  } while (0)
++// #define battery_xlog_printk(num, fmt, args...) \
++//   do { \
++//     if (Enable_BATDRV_LOG >= (int)num) { \
++//       pr_notice(fmt, ##args); \
++//     } \
++//   } while (0)
++#define battery_xlog_printk(num, fmt, args...) do {} while (0)
+ 
+ 
+ /* ============================================================ */
+diff --git a/kernel/sched/core.c b/kernel/sched/core.c
+index b817cf43..3bb55807 100644
+--- a/kernel/sched/core.c
++++ b/kernel/sched/core.c
+@@ -4251,12 +4251,12 @@ recheck:
+ 			return -EINVAL;
+ 	}
+ 
+-	if(rt_policy(policy)){                                                                                
+-		if (!check_mt_allow_rt((struct sched_param *)param)){
+-			printk("[RT_MONITOR]WARNNING [%d:%s] SET NOT ALLOW RT Prio [%d] for proc [%d:%s]\n", current->pid, current->comm, param->sched_priority, p->pid, p->comm);
+-			//dump_stack();
+-		}
+-	}
++//	if(rt_policy(policy)){                                                                                
++//		if (!check_mt_allow_rt((struct sched_param *)param)){
++//			printk("[RT_MONITOR]WARNNING [%d:%s] SET NOT ALLOW RT Prio [%d] for proc [%d:%s]\n", current->pid, current->comm, param->sched_priority, p->pid, p->comm);
++//			//dump_stack();
++//		}
++//	}
+ 
+ 	/*
+ 	 * Valid priorities for SCHED_FIFO and SCHED_RR are

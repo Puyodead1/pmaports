@@ -1,0 +1,76 @@
+# Reference: <https://postmarketos.org/vendorkernel>
+# Kernel config based on: arch/arm/configs/narnia_defconfig
+
+maintainer="Puyodead1"
+pkgname=linux-quanta-narnia
+pkgver=3.10.108
+pkgrel=0
+pkgdesc="LeapFrog Epic Academy V3 Kernel"
+arch="armv7"
+_carch="arm"
+_flavor="quanta-narnia"
+url="https://github.com/mt8127-tadpole/android_kernel_mediatek_mt8127-common"
+license="GPL-2.0-only"
+options="!strip !check !tracedeps pmb:cross-native"
+makedepends="
+	bash
+	bc
+	bison
+	devicepkg-dev
+	findutils
+	flex
+	openssl-dev
+	perl
+	gcc4
+	linux-headers
+	xz
+"
+
+# Compiler: GCC 4 (doesn't compile with versions above GCC 4)
+if ! echo "${CC:-}" | grep -q '^gcc4-'; then
+    CC="gcc4-$CC"
+    HOSTCC="gcc4-gcc"
+    CROSS_COMPILE="gcc4-$CROSS_COMPILE"
+fi
+
+
+# Source
+_repository="android_kernel_mediatek_mt8127-common"
+_commit="3a1251cdbaebe4727e87548e5e1c22dd7e23cdae"
+_config="config-$_flavor.$arch"
+source="
+	$pkgname-$_commit.tar.gz::https://github.com/mt8127-tadpole/$_repository/archive/$_commit.tar.gz
+	$_config
+	0001-narnia-fixes.patch
+"
+
+# silence-usb-logspam.patch
+# silence-cmb-logspam.patch
+# silence-tz-logspam.patch
+# silence-thermal-logspam.patch
+
+
+builddir="$srcdir/$_repository-$_commit"
+_outdir="out"
+
+prepare() {
+	default_prepare
+	. downstreamkernel_prepare
+}
+
+build() {
+	unset LDFLAGS
+	make O="$_outdir" ARCH="$_carch" CC="${CC:-gcc}" \
+		KBUILD_BUILD_VERSION="$((pkgrel + 1 ))-postmarketOS"
+}
+
+package() {
+	downstreamkernel_package "$builddir" "$pkgdir" "$_carch" \
+		"$_flavor" "$_outdir"
+}
+
+sha512sums="
+e586417bb9919113727b79964e2639d335a7d9162a0ada1df971924a0918d615edbf8502baa854af87c7e8367eafb7ad8f8064624d97aa8fcc68d904fb545b68  linux-quanta-narnia-3a1251cdbaebe4727e87548e5e1c22dd7e23cdae.tar.gz
+a3998dfe7432653c96fc4d98e621aadb0f1f4454e45cfee81d9d714664677e41284384afe24fea9aeff6a0ae5aa7252ac40e68e45c3e70c7ff0375a074051b44  config-quanta-narnia.armv7
+1cdfc07cfc9cb1ce62540de9be135eb634a176506c726e6f54b8b78f758a6e1c76adeb0a6e25b66b73c0a85bcea23b19601b8dedf9e9d1e9f15ec17fb7222736  0001-narnia-fixes.patch
+"

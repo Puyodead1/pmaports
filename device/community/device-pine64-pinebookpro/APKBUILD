@@ -2,7 +2,7 @@
 maintainer="Hugo Osvaldo Barrera <hugo@whynothugo.nl>"
 pkgname=device-pine64-pinebookpro
 pkgdesc="PINE64 Pinebook Pro"
-pkgver=22
+pkgver=23
 pkgrel=0
 url="https://postmarketos.org"
 license="MIT"

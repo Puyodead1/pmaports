@@ -1,0 +1,37 @@
+# Touch screen
+
+diff --git a/drivers/input/rmi4/rmi_driver.c b/drivers/input/rmi4/rmi_driver.c
+index ccd9338a44db..6315616182ff 100644
+--- a/drivers/input/rmi4/rmi_driver.c
++++ b/drivers/input/rmi4/rmi_driver.c
+@@ -1228,12 +1228,9 @@ static int rmi_driver_probe(struct device *dev)
+ 	if (retval < 0)
+ 		goto err_destroy_functions;
+ 
+-	if (data->f01_container->dev.driver) {
+-		/* Driver already bound, so enable ATTN now. */
+-		retval = rmi_enable_sensor(rmi_dev);
+-		if (retval)
+-			goto err_disable_irq;
+-	}
++	retval = rmi_enable_sensor(rmi_dev);
++	if (retval)
++		goto err_disable_irq;
+ 
+ 	return 0;
+ 
+diff --git a/drivers/input/rmi4/rmi_f34.c b/drivers/input/rmi4/rmi_f34.c
+index f1947f03b06a..d042c5911d73 100644
+--- a/drivers/input/rmi4/rmi_f34.c
++++ b/drivers/input/rmi4/rmi_f34.c
+@@ -436,9 +436,7 @@ static int rmi_firmware_update(struct rmi_driver_data *data,
+ 
+ 	rmi_enable_irq(rmi_dev, false);
+ 
+-	if (data->f01_container->dev.driver)
+-		/* Driver already bound, so enable ATTN now. */
+-		return rmi_enable_sensor(rmi_dev);
++	return rmi_enable_sensor(rmi_dev);
+ 
+ 	rmi_dbg(RMI_DEBUG_FN, dev, "%s complete\n", __func__);
+ 

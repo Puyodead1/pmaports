@@ -1,0 +1,301 @@
+# Fixes necessary for the GPU
+
+diff --git a/drivers/gpu/drm/msm/adreno/a3xx_gpu.c b/drivers/gpu/drm/msm/adreno/a3xx_gpu.c
+index 018183e0ac3f..ca3102c20223 100644
+--- a/drivers/gpu/drm/msm/adreno/a3xx_gpu.c
++++ b/drivers/gpu/drm/msm/adreno/a3xx_gpu.c
+@@ -25,6 +25,8 @@
+ 
+ extern bool hang_debug;
+ 
++#define A3XX_VBIF_XIN_HALT_CTRL0_MASK	GENMASK(5, 0)
++
+ static void a3xx_dump(struct msm_gpu *gpu);
+ static bool a3xx_idle(struct msm_gpu *gpu);
+ 
+@@ -357,6 +359,8 @@ static int a3xx_hw_init(struct msm_gpu *gpu)
+ 		gpu_write(gpu, REG_AXXX_CP_QUEUE_THRESHOLDS, 0x003e2008);
+ 	}
+ 
++	/* GPU state is lost across power collapse, force context restore. */
++	gpu->rb[0]->cur_ctx_seqno = 0;
+ 	/* clear ME_HALT to start micro engine */
+ 	gpu_write(gpu, REG_AXXX_CP_ME_CNTL, 0);
+ 
+@@ -502,6 +506,65 @@ static u64 a3xx_gpu_busy(struct msm_gpu *gpu, unsigned long *out_sample_rate)
+ 	return busy_cycles;
+ }
+ 
++static int a3xx_bus_clear_pending_transactions(struct msm_gpu *gpu)
++{
++	unsigned long timeout;
++	u32 ack, clock_ctl;
++	int ret = -ETIMEDOUT;
++
++	clock_ctl = gpu_read(gpu, REG_A3XX_RBBM_CLOCK_CTL);
++	gpu_write(gpu, REG_A3XX_RBBM_CLOCK_CTL, 0);
++	gpu_read(gpu, REG_A3XX_RBBM_CLOCK_CTL);
++
++	gpu_write(gpu, REG_A3XX_VBIF_XIN_HALT_CTRL0,
++		  A3XX_VBIF_XIN_HALT_CTRL0_MASK);
++	timeout = jiffies + msecs_to_jiffies(100);
++	do {
++		ack = gpu_read(gpu, REG_A3XX_VBIF_XIN_HALT_CTRL1);
++		if ((ack & A3XX_VBIF_XIN_HALT_CTRL0_MASK) ==
++		    A3XX_VBIF_XIN_HALT_CTRL0_MASK) {
++			ret = 0;
++			break;
++		}
++	} while (time_before(jiffies, timeout));
++	gpu_write(gpu, REG_A3XX_VBIF_XIN_HALT_CTRL0, 0);
++	gpu_write(gpu, REG_A3XX_RBBM_CLOCK_CTL, clock_ctl);
++
++	if (ret) {
++		dev_err(gpu->dev->dev,
++			"VBIF drain timed out: ack=%#x mask=%#x clock_ctl=%#x\n",
++			ack, A3XX_VBIF_XIN_HALT_CTRL0_MASK, clock_ctl);
++		return -EBUSY;
++	}
++
++	return 0;
++}
++
++static int a3xx_pm_suspend(struct msm_gpu *gpu)
++{
++	int ret;
++
++	if (!a3xx_idle(gpu)) {
++		dev_err(gpu->dev->dev,
++			"suspend idle check failed: rbbm_status=%#x ring_rptr=%#x ring_wptr=%#x\n",
++			gpu_read(gpu, REG_A3XX_RBBM_STATUS),
++			gpu_read(gpu, REG_AXXX_CP_RB_RPTR),
++			gpu_read(gpu, REG_AXXX_CP_RB_WPTR));
++		return -EBUSY;
++	}
++
++	ret = a3xx_bus_clear_pending_transactions(gpu);
++	if (ret) {
++		dev_err(gpu->dev->dev,
++			"VBIF drain status unavailable, resetting before suspend\n");
++		gpu_write(gpu, REG_A3XX_RBBM_SW_RESET_CMD, 1);
++		gpu_read(gpu, REG_A3XX_RBBM_SW_RESET_CMD);
++		gpu_write(gpu, REG_A3XX_RBBM_SW_RESET_CMD, 0);
++	}
++
++	return msm_gpu_pm_suspend(gpu);
++}
++
+ static u32 a3xx_get_rptr(struct msm_gpu *gpu, struct msm_ringbuffer *ring)
+ {
+ 	ring->memptrs->rptr = gpu_read(gpu, REG_AXXX_CP_RB_RPTR);
+@@ -597,7 +660,7 @@ const struct adreno_gpu_funcs a3xx_gpu_funcs = {
+ 		.get_param = adreno_get_param,
+ 		.set_param = adreno_set_param,
+ 		.hw_init = a3xx_hw_init,
+-		.pm_suspend = msm_gpu_pm_suspend,
++		.pm_suspend = a3xx_pm_suspend,
+ 		.pm_resume = msm_gpu_pm_resume,
+ 		.recover = a3xx_recover,
+ 		.submit = a3xx_submit,
+diff --git a/drivers/gpu/drm/msm/adreno/adreno_device.c b/drivers/gpu/drm/msm/adreno/adreno_device.c
+index 4edfe80c5be7..3de7cd9cf4bb 100644
+--- a/drivers/gpu/drm/msm/adreno/adreno_device.c
++++ b/drivers/gpu/drm/msm/adreno/adreno_device.c
+@@ -405,6 +405,7 @@ static struct platform_driver adreno_driver = {
+ 	.probe = adreno_probe,
+ 	.remove = adreno_remove,
+ 	.shutdown = adreno_shutdown,
++	.driver_managed_dma = true,
+ 	.driver = {
+ 		.name = "adreno",
+ 		.of_match_table = dt_match,
+diff --git a/drivers/gpu/drm/msm/dsi/dsi.c b/drivers/gpu/drm/msm/dsi/dsi.c
+index d8bb40ef820e..121435da16f2 100644
+--- a/drivers/gpu/drm/msm/dsi/dsi.c
++++ b/drivers/gpu/drm/msm/dsi/dsi.c
+@@ -266,4 +266,3 @@ void msm_dsi_snapshot(struct msm_disp_state *disp_state, struct msm_dsi *msm_dsi
+ 	msm_dsi_host_snapshot(disp_state, msm_dsi->host);
+ 	msm_dsi_phy_snapshot(disp_state, msm_dsi->phy);
+ }
+-
+diff --git a/drivers/gpu/drm/msm/dsi/dsi_host.c b/drivers/gpu/drm/msm/dsi/dsi_host.c
+index db6da99375a1..b5a0b282b033 100644
+--- a/drivers/gpu/drm/msm/dsi/dsi_host.c
++++ b/drivers/gpu/drm/msm/dsi/dsi_host.c
+@@ -569,6 +569,7 @@ void dsi_link_clk_disable_v2(struct msm_dsi_host *msm_host)
+  * dsi_adjust_pclk_for_compression() - Adjust the pclk rate for compression case
+  * @mode: The selected mode for the DSI output
+  * @dsc: DRM DSC configuration for this DSI output
++ * @is_bonded_dsi: True if two DSI controllers are bonded
+  *
+  * Adjust the pclk rate by calculating a new hdisplay proportional to
+  * the compression ratio such that:
+@@ -782,13 +783,21 @@ static void dsi_ctrl_disable(struct msm_dsi_host *msm_host)
+ 	dsi_write(msm_host, REG_DSI_CTRL, 0);
+ }
+ 
++static bool msm_dsi_host_version_geq(struct msm_dsi_host *msm_host,
++				    u32 major, u32 minor)
++{
++	return msm_host->cfg_hnd->major > major ||
++	       (msm_host->cfg_hnd->major == major &&
++	       msm_host->cfg_hnd->minor >= minor);
++}
++
+ bool msm_dsi_host_is_wide_bus_enabled(struct mipi_dsi_host *host)
+ {
+ 	struct msm_dsi_host *msm_host = to_msm_dsi_host(host);
+ 
+ 	return msm_host->dsc &&
+-		(msm_host->cfg_hnd->major == MSM_DSI_VER_MAJOR_6G &&
+-		 msm_host->cfg_hnd->minor >= MSM_DSI_6G_VER_MINOR_V2_5_0);
++		msm_dsi_host_version_geq(msm_host, MSM_DSI_VER_MAJOR_6G,
++					MSM_DSI_6G_VER_MINOR_V2_5_0);
+ }
+ 
+ static void dsi_ctrl_enable(struct msm_dsi_host *msm_host,
+@@ -1033,8 +1042,9 @@ static void dsi_timing_setup(struct msm_dsi_host *msm_host, bool is_bonded_dsi)
+ 		/*
+ 		 * DPU sends 3 bytes per pclk cycle to DSI. If widebus is
+ 		 * enabled, MDP always sends out 48-bit compressed data per
+-		 * pclk and on average, DSI consumes an amount of compressed
+-		 * data equivalent to the uncompressed pixel depth per pclk.
++		 * pclk and on average, for video mode, DSI consumes only an
++		 * amount of compressed data equivalent to the uncompressed
++		 * pixel depth per pclk.
+ 		 *
+ 		 * Calculate the number of pclks needed to transmit one line of
+ 		 * the compressed data.
+@@ -1046,10 +1056,14 @@ static void dsi_timing_setup(struct msm_dsi_host *msm_host, bool is_bonded_dsi)
+ 		 * unused anyway.
+ 		 */
+ 		h_total -= hdisplay;
+-		if (wide_bus_enabled)
+-			bits_per_pclk = mipi_dsi_pixel_format_to_bpp(msm_host->format);
+-		else
++		if (wide_bus_enabled) {
++			if (msm_host->mode_flags & MIPI_DSI_MODE_VIDEO)
++				bits_per_pclk = dsc->bits_per_component * 3;
++			else
++				bits_per_pclk = 48;
++		} else {
+ 			bits_per_pclk = 24;
++		}
+ 
+ 		hdisplay = DIV_ROUND_UP(msm_dsc_get_bytes_per_line(msm_host->dsc) * 8, bits_per_pclk);
+ 
+diff --git a/drivers/gpu/drm/msm/msm_atomic.c b/drivers/gpu/drm/msm/msm_atomic.c
+index 87a91148a731..2bc68491b0f3 100644
+--- a/drivers/gpu/drm/msm/msm_atomic.c
++++ b/drivers/gpu/drm/msm/msm_atomic.c
+@@ -4,6 +4,7 @@
+  * Author: Rob Clark <robdclark@gmail.com>
+  */
+ 
++
+ #include <drm/drm_atomic_uapi.h>
+ #include <drm/drm_vblank.h>
+ 
+diff --git a/drivers/gpu/drm/msm/msm_gpu.c b/drivers/gpu/drm/msm/msm_gpu.c
+index 84d6c7f50c8d..ddec7762f9d3 100644
+--- a/drivers/gpu/drm/msm/msm_gpu.c
++++ b/drivers/gpu/drm/msm/msm_gpu.c
+@@ -115,10 +115,10 @@ int msm_gpu_pm_resume(struct msm_gpu *gpu)
+ 	if (ret)
+ 		return ret;
+ 
+-	msm_devfreq_resume(gpu);
+-
+ 	gpu->needs_hw_init = true;
+ 
++	msm_devfreq_resume(gpu);
++
+ 	return 0;
+ }
+ 
+@@ -167,8 +167,10 @@ int msm_gpu_hw_init(struct msm_gpu *gpu)
+ 
+ 	disable_irq(gpu->irq);
+ 	ret = gpu->funcs->hw_init(gpu);
+-	if (!ret)
++	if (!ret) {
++		msm_devfreq_hw_init(gpu);
+ 		gpu->needs_hw_init = false;
++	}
+ 	enable_irq(gpu->irq);
+ 
+ 	return ret;
+diff --git a/drivers/gpu/drm/msm/msm_gpu.h b/drivers/gpu/drm/msm/msm_gpu.h
+index 666cf499b7ec..358f37ca8fa8 100644
+--- a/drivers/gpu/drm/msm/msm_gpu.h
++++ b/drivers/gpu/drm/msm/msm_gpu.h
+@@ -683,6 +683,7 @@ void msm_devfreq_init(struct msm_gpu *gpu);
+ void msm_devfreq_cleanup(struct msm_gpu *gpu);
+ void msm_devfreq_resume(struct msm_gpu *gpu);
+ void msm_devfreq_suspend(struct msm_gpu *gpu);
++void msm_devfreq_hw_init(struct msm_gpu *gpu);
+ void msm_devfreq_boost(struct msm_gpu *gpu, unsigned factor);
+ void msm_devfreq_active(struct msm_gpu *gpu);
+ void msm_devfreq_idle(struct msm_gpu *gpu);
+diff --git a/drivers/gpu/drm/msm/msm_gpu_devfreq.c b/drivers/gpu/drm/msm/msm_gpu_devfreq.c
+index 2e1d5c343272..457ae3e1d275 100644
+--- a/drivers/gpu/drm/msm/msm_gpu_devfreq.c
++++ b/drivers/gpu/drm/msm/msm_gpu_devfreq.c
+@@ -90,13 +90,20 @@ static int msm_devfreq_get_dev_status(struct device *dev,
+ 	status->total_time = ktime_us_delta(time, df->time);
+ 	df->time = time;
+ 
+-	if (df->suspended) {
++	if (df->suspended || gpu->needs_hw_init) {
+ 		mutex_unlock(&df->lock);
+ 		status->busy_time = 0;
+ 		return 0;
+ 	}
+ 
+ 	busy_cycles = gpu->funcs->gpu_busy(gpu, &sample_rate);
++	if (busy_cycles < df->busy_cycles) {
++		df->busy_cycles = busy_cycles;
++		mutex_unlock(&df->lock);
++		status->busy_time = 0;
++		return 0;
++	}
++
+ 	busy_time = busy_cycles - df->busy_cycles;
+ 	df->busy_cycles = busy_cycles;
+ 
+@@ -225,6 +232,22 @@ void msm_devfreq_cleanup(struct msm_gpu *gpu)
+ 	dev_pm_qos_remove_request(&df->boost_freq);
+ }
+ 
++void msm_devfreq_hw_init(struct msm_gpu *gpu)
++{
++	struct msm_gpu_devfreq *df = &gpu->devfreq;
++	unsigned long sample_rate;
++
++	if (!has_devfreq(gpu))
++		return;
++
++	mutex_lock(&df->lock);
++	if (!df->suspended) {
++		df->busy_cycles = gpu->funcs->gpu_busy(gpu, &sample_rate);
++		df->time = ktime_get();
++	}
++	mutex_unlock(&df->lock);
++}
++
+ void msm_devfreq_resume(struct msm_gpu *gpu)
+ {
+ 	struct msm_gpu_devfreq *df = &gpu->devfreq;
+diff --git a/drivers/gpu/drm/msm/registers/adreno/a3xx.xml b/drivers/gpu/drm/msm/registers/adreno/a3xx.xml
+index 6717abc0a897..096de72b0b6c 100644
+--- a/drivers/gpu/drm/msm/registers/adreno/a3xx.xml
++++ b/drivers/gpu/drm/msm/registers/adreno/a3xx.xml
+@@ -1499,6 +1499,8 @@ xsi:schemaLocation="https://gitlab.freedesktop.org/freedreno/ rules-fd.xsd">
+ 	<reg32 offset="0x3058" name="VBIF_OUT_AXI_AMEMTYPE_CONF0"/>
+ 	<reg32 offset="0x305e" name="VBIF_OUT_AXI_AOOO_EN"/>
+ 	<reg32 offset="0x305f" name="VBIF_OUT_AXI_AOOO"/>
++	<reg32 offset="0x3080" name="VBIF_XIN_HALT_CTRL0"/>
++	<reg32 offset="0x3081" name="VBIF_XIN_HALT_CTRL1"/>
+ 
+ 	<bitset name="a3xx_vbif_perf_cnt" inline="yes">
+ 		<bitfield name="CNT0" pos="0" type="boolean"/>

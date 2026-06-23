@@ -1,0 +1,96 @@
+# Kernel config based on: arch/arm/configs/qcom_defconfig
+maintainer="Alex-min <contact@alex-min.fr>"
+pkgname=linux-samsung-jflte
+pkgver=7.0
+pkgrel=0
+pkgdesc="Mainline kernel for the Samsung Galaxy S4"
+arch="armv7"
+_carch="arm"
+_flavor="${pkgname#linux-}"
+url="https://kernel.org"
+license="GPL-2.0-only"
+options="!strip !check !tracedeps
+	pmb:cross-native
+"
+makedepends="
+	bash
+	bison
+	clang
+	findutils
+	flex
+	gmp-dev
+	lld
+	llvm
+	mpc1-dev
+	mpfr-dev
+	openssl-dev
+	perl
+	postmarketos-installkernel
+	python3
+	xz
+	zstd
+"
+
+# Source
+_config="config-$_flavor.$arch"
+case $pkgver in
+	*.*.*)	_kernver=${pkgver%.0};;
+	*.*)	_kernver=$pkgver;;
+esac
+source="
+	https://cdn.kernel.org/pub/linux/kernel/v${_kernver%%.*}.x/linux-$_kernver.tar.xz
+	$_config
+	0001-jflte-dts.patch
+	0002-booting-fix.patch
+	0003-screen-driver.patch
+	0004-touch-screen.patch
+	0005-arm-dma.patch
+	0006-mdp4.patch
+	0007-gpu.patch
+	0008-documentation.patch
+	0009-wifi-and-bluetooth.patch
+	0010-charging-status.patch
+"
+builddir="$srcdir/linux-$_kernver"
+
+prepare() {
+	default_prepare
+	cp "$srcdir/config-$_flavor.$CARCH" .config
+}
+
+build() {
+	unset LDFLAGS
+	make ARCH="$_carch" LLVM=1 \
+		LZMA="xz --format=lzma" \
+		KBUILD_BUILD_VERSION="$((pkgrel + 1 ))-postmarketOS"
+}
+
+package() {
+	mkdir -p "$pkgdir"/boot
+	make zinstall modules_install dtbs_install \
+		ARCH="$_carch" \
+		LLVM=1 \
+		INSTALL_PATH="$pkgdir"/boot \
+		INSTALL_MOD_PATH="$pkgdir/usr" \
+		INSTALL_MOD_STRIP=1 \
+		INSTALL_DTBS_PATH="$pkgdir"/boot/dtbs
+	rm -f "$pkgdir"/lib/modules/*/build "$pkgdir"/lib/modules/*/source
+
+	install -D "$builddir"/include/config/kernel.release \
+		"$pkgdir"/usr/share/kernel/$_flavor/kernel.release
+}
+
+sha512sums="
+8c85b708342f8f09ca25b2234b22e93b62b144a9ef919fbb21827f52fa47498e778c79db1559524dd7fb360f95b2ce174171443c1859656c281be41d2b6c5a0b  linux-7.0.tar.xz
+73f19740ac5e5063d0ce58829b78719c6d0a61f5a273f6bc32be0fc17b9d6f76f485b93e3b2978996aca0e7441c39ce581dc30088319ca5769d02487893f156c  config-samsung-jflte.armv7
+6111174208a912c6c485ecfc4bdc589a4e1f287e7b3d5ebfe8f64605c48f3ab7c82ed821e2b31392bc6339e1cf0d8c72e329bf8e570e6f5fa9b3a6a66c1afb04  0001-jflte-dts.patch
+504c5a5a3966e82592d8bff12d5adf681a13b7a9494c3952c99400ce6a79eb7d96eb4b5c55b86ab617c0f5f4ef5e580089c2c248910cf17dacdff1a0c97c0942  0002-booting-fix.patch
+7a6facd640a7ed1653204e2add306d8fd74320c75e388096099f6c880c99876920ca8e38002b8142f9f3cfff3c78a18b29d6d4c6d22a5ea6635fed2f3fa1ee92  0003-screen-driver.patch
+4675d166f1ef790aa47179bd59b316102eef0791967bbd5a301114aa21415186642597c22ee3050013b73d90958c98ffe706f1d2e329469f1839647befa0f142  0004-touch-screen.patch
+f844ba57b4946a2a0d0e8e890502a9ebb51281c4d77dd17b5683f299557455055b8c9249e903c329b3da7f18052bd759ff4fe4da388932a5b38f6e0419bed368  0005-arm-dma.patch
+c0c69e80892690d451b0d150f5a3566f42242fa461588b02b80311aba4689bfaa3fb9e6c73a9569a7d4d113bd388e651a8ec612e3d5cb225cca9e00ce7824d54  0006-mdp4.patch
+37326158aed3a48d4a3c68baf9df1985cc377d7e7d521260240f7a29aa6ce51bd742a2a78e5b5953d1cc5a1b7c566842f10b895c9a46a09c6ed8e1a539cce266  0007-gpu.patch
+2eb2fa31d4e6c662ddb9db7cab1e988bfb90d5785c532541f7871edc0f54a9617ff1edcd251a6bdedbaa9d0db5f94a0cbead0d9437fc07086541eb9da81297df  0008-documentation.patch
+9371bcac849b4f026d51e3a4f6e62337e8c5577a3b6dcf57e5a5c7d659254d481df1acc72c5331c04ac2e6bb2415ad49b5ce738035212cdf9249d5cfdf26a54d  0009-wifi-and-bluetooth.patch
+9865fca19aef439bc280a4271c1ca147dfb62c075dfa7f87303db12f8d5cecfab0a861c47d9410a2b1d416a42c37066cf0d6667a9cbb6715307c608349f88b0e  0010-charging-status.patch
+"

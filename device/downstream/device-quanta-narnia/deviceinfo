@@ -29,4 +29,8 @@ deviceinfo_flash_offset_kernel="0x00008000"
 deviceinfo_flash_offset_ramdisk="0x04000000"
 deviceinfo_flash_offset_second="0x00f00000"
 deviceinfo_flash_offset_tags="0x00000100"
+# NOTE: this cmdline has no real effect on boot - MTK's LK bootloader
+# overwrites/appends its own cmdline regardless of what's embedded here.
+# Use CONFIG_CMDLINE (with CONFIG_CMDLINE_EXTEND=y) in the kernel config
+# instead if you need to actually change the boot cmdline.
 deviceinfo_kernel_cmdline="console=ttyMT0,921600n1 printk.disable_uart=0 root=/dev/ram fbcon=rotate:2"

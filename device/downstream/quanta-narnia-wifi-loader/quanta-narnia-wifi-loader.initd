@@ -1,0 +1,38 @@
+#!/sbin/openrc-run
+
+name="quanta-narnia-wifi-loader"
+description="MediaTek combo-chip (WiFi/BT/GPS) bring-up for quanta-narnia"
+pidfile="/run/${RC_SVCNAME}.pid"
+
+depend() {
+	need udev
+	before networkmanager
+}
+
+start() {
+	ebegin "Starting WiFi/BT/GPS combo chip"
+	# wmt_loader must only ever run once per boot - it crashes the chip if run
+	# again, so skip it if the chip has already been detected/initialized.
+	if [ ! -e /dev/stpwmt ]; then
+		/usr/bin/wmt_loader
+	fi
+	start-stop-daemon --start --background --make-pidfile --pidfile "$pidfile" \
+		--exec /usr/bin/6620_launcher -- -p /lib/firmware/
+	# wait for the chip to finish loading firmware before enabling wlan0
+	i=0
+	while [ ! -e /dev/wmtWifi ] && [ "$i" -lt 20 ]; do
+		sleep 0.5
+		i=$((i + 1))
+	done
+	if [ -e /dev/wmtWifi ]; then
+		echo 1 > /dev/wmtWifi
+		ifconfig wlan0 up
+	fi
+	eend 0
+}
+
+stop() {
+	ebegin "Stopping WiFi/BT/GPS combo chip"
+	start-stop-daemon --stop --pidfile "$pidfile"
+	eend $?
+}

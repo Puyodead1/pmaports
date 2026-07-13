@@ -1,7 +1,7 @@
 # Reference: <https://postmarketos.org/vendorkernel>
 # Kernel config based on: arch/arm/configs/narnia_defconfig
 
-maintainer="Puyodead1"
+maintainer="Puyodead1 <23562356riley@gmail.com>"
 pkgname=linux-quanta-narnia
 pkgver=3.10.108
 pkgrel=0
@@ -71,6 +71,6 @@ package() {
 
 sha512sums="
 e586417bb9919113727b79964e2639d335a7d9162a0ada1df971924a0918d615edbf8502baa854af87c7e8367eafb7ad8f8064624d97aa8fcc68d904fb545b68  linux-quanta-narnia-3a1251cdbaebe4727e87548e5e1c22dd7e23cdae.tar.gz
-a3998dfe7432653c96fc4d98e621aadb0f1f4454e45cfee81d9d714664677e41284384afe24fea9aeff6a0ae5aa7252ac40e68e45c3e70c7ff0375a074051b44  config-quanta-narnia.armv7
-1cdfc07cfc9cb1ce62540de9be135eb634a176506c726e6f54b8b78f758a6e1c76adeb0a6e25b66b73c0a85bcea23b19601b8dedf9e9d1e9f15ec17fb7222736  0001-narnia-fixes.patch
+afbe2603bb81c0fd7d283619145e72f9953a0b23e975835ce9435ae5882c6604b4ef93b6ab4e36d7a6215e57ecd790fd6621bd226105978ef3cae84d074f0fbd  config-quanta-narnia.armv7
+521cbbbaa6ef72b66fb81cf4d4fc5d1f3a8771bec13eb0a25f9a4a54573016678007c8a39be9f4e975f4b458c9274a7e2631483e07234897a732102a62adb72f  0001-narnia-fixes.patch
 "

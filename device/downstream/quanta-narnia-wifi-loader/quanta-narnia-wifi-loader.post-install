@@ -1,0 +1,8 @@
+#!/bin/sh
+
+rc-update add quanta-narnia-wifi-loader default
+
+# NetworkManager owns wlan0 on this device. A standalone wpa_supplicant
+# service fights it (associates, then NM tears it back down almost
+# immediately) - see project history. Make sure it's not enabled.
+rc-update del wpa_supplicant default 2>/dev/null || true

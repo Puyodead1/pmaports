@@ -1,9 +1,9 @@
 # Reference: <https://postmarketos.org/devicepkg>
-maintainer="Puyodead1"
+maintainer="Puyodead1 <23562356riley@gmail.com>"
 pkgname=device-quanta-narnia
 pkgdesc="LeapFrog Epic Academy V3"
 pkgver=1
-pkgrel=0
+pkgrel=3
 url="https://postmarketos.org"
 license="MIT"
 arch="armv7"
@@ -14,6 +14,9 @@ depends="
 	postmarketos-base-downstream
 	mkbootimg
 	mtk-mkimage
+	firmware-quanta-narnia
+	quanta-narnia-wifi-loader
+	msm-fb-refresher
 "
 makedepends="devicepkg-dev"
 source="
@@ -33,7 +36,7 @@ package() {
 }
 
 sha512sums="
-f61329001e6b76a8d9608451a0ad49d89bc4590046c2573b1e48d04ecf6adc51370138e0ce6f283ef58419509936bfaaa2af27f5facbb1273c5d7be6bbad1538  deviceinfo
+199b941f8accec698cc6895e52a05fb48d23d54b8a1cb54cabffc9d56beaa7a662e1acd1d26beeac7bb7b2db359a3c14515aa33e0af084a898682087913ab1a6  deviceinfo
 9e231e1c27492a08414caacbfa2336f0e95e9a601447ad50f7b8cd5b7b5c90498fd3cf1e48f73641365271ac9271feea2e587961af6ea7d6bbba6e4e90a88b93  00-fbdev-rotate.conf
 e70bae17df23dcaaaea0e2d3616556f04baa23f8ee1357785c0f539bf97282d8ddff53953e155b72689bb73beb38c2da3d08de2a61e866684edfa10a6593885d  modules-initfs
 "

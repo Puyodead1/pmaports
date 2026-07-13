@@ -1,0 +1,45 @@
+maintainer="Puyodead1 <23562356riley@gmail.com>"
+pkgname=firmware-quanta-narnia
+pkgver=1
+pkgrel=1
+pkgdesc="LeapFrog EpicV3 (quanta-narnia) WiFi/BT/GPS combo-chip firmware"
+url="https://github.com/Puyodead1/wmt"
+arch="armv7"
+license="proprietary"
+options="!check !archcheck !strip pmb:cross-native"
+source="
+	WIFI_RAM_CODE
+	WIFI_RAM_CODE_8127
+	WIFI_RAM_CODE_E6
+	WIFI_RAM_CODE_MT6628
+	WIFI_RAM_CODE_MT6630
+	mt6571_patch_e1_0_hdr.bin
+	mt6571_patch_e1_1_hdr.bin
+	WMT_SOC.cfg
+	wifi.cfg
+	nvram.bin
+"
+
+package() {
+	for _i in WIFI_RAM_CODE WIFI_RAM_CODE_8127 WIFI_RAM_CODE_E6 \
+		WIFI_RAM_CODE_MT6628 WIFI_RAM_CODE_MT6630 \
+		mt6571_patch_e1_0_hdr.bin mt6571_patch_e1_1_hdr.bin \
+		WMT_SOC.cfg wifi.cfg; do
+		install -Dm644 "$srcdir/$_i" "$pkgdir/usr/lib/firmware/$_i"
+	done
+	install -Dm644 "$srcdir/nvram.bin" \
+		"$pkgdir/data/nvram/APCFG/APRDEB/WIFI"
+}
+
+sha512sums="
+a69fbf21e42801bcd7cad54345792913069704a2afdda1f6767dfd70a3a3d9b2b4331e75a223646df08024a4283bed85621eb6d9762884a188e899d3fa5c8fa2  WIFI_RAM_CODE
+c38a39d7389caeaa861951b2960312a3ad5e3ee34a50a57b062fd9a4afcf926d4e0eafd398df158667b70c04ede024e064826f9f96be08ac3d97d78eb22e3aaf  WIFI_RAM_CODE_8127
+2e22952fddb806bb2ba7b322fd753b3d7132103d4bf9ac617b3f24b445a3ea594f2f4896317e7fd27530916d660cf15a014511054dcc56c26d489754a5bdeb56  WIFI_RAM_CODE_E6
+eb9269e938ea498e8ec2c96fb788c3c2257d38ac129503c4cbec4053442ef0289fdb97120f6244a9dcab53206d41eb0f6b069950c561935c862e1487eec4c8ca  WIFI_RAM_CODE_MT6628
+8e5a85c5fb866e279e941ed284e69827c48b3c4e9a9ca486c54e933a7f2b7db0043847398e991fd3130242e038b1b84119f3933227cd1dcfe093e513eb3fb21f  WIFI_RAM_CODE_MT6630
+a3d782b6d5278e63a2bbef2880f1f793a6bb4141cd4f182413c3a67db9630ac86facaf250a1c7ce05fc0f61f72a7f68cc648ae76b9856b17ecc57d50d12fa143  mt6571_patch_e1_0_hdr.bin
+797680826c10b68875d7e1c385bbe650d456a5ba7b04c71ba887e82a88d89a21a5665966e41f4ac81ac39f0835ee6b3192ff994b2ce423801e007dc9053d7f2c  mt6571_patch_e1_1_hdr.bin
+40f9db04ca1cddb5afcff66fad6277fc4ce966596a6e3d80b59da5608245303b0e2463d82d176b7baeec85d589947ee718e97e4f6fd9cffd3c382b5440cc46e4  WMT_SOC.cfg
+5c2767b73950b9391e94c2fc991253ca04ffb49576a03ced25caca8586c98b86e4593789a6786994696544b5e768652b09dfbe16e255057c2a597b8c8c554a85  wifi.cfg
+644ea1f64337b5669e9759430b09666fcdd24e701c93f5756516b59eefc69e818830ab0f1b73ed45d411007f528c112acd4871f6f0c2e23d60ec34eb4e33dc22  nvram.bin
+"

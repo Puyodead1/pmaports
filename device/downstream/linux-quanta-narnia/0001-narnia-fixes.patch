@@ -106,6 +106,19 @@ index fa139f2a..413b7dbc 100644
  
  #if (HOTPLUG_LOG_PRINT == HOTPLUG_LOG_NONE)
  #define HOTPLUG_INFO(fmt, args...)                    
+diff --git a/arch/arm/mach-mt8127/include/mach/mt_freqhopping.h b/arch/arm/mach-mt8127/include/mach/mt_freqhopping.h
+index a8621c69..7a0b697e 100644
+--- a/arch/arm/mach-mt8127/include/mach/mt_freqhopping.h
++++ b/arch/arm/mach-mt8127/include/mach/mt_freqhopping.h
+@@ -30,7 +30,7 @@
+ 
+ #define VERBOSE_DEBUG 0
+ 
+-#if 1//VERBOSE_DEBUG
++#if 0//VERBOSE_DEBUG
+ #define FH_MSG(fmt, args...) \
+ do {    \
+ 		printk( FHTAG""fmt" <- %s(): L<%d>  PID<%s><%d>\n", \
 diff --git a/arch/arm/mach-mt8127/mt-smp.c b/arch/arm/mach-mt8127/mt-smp.c
 index 4df773d2..1fbd14c9 100644
 --- a/arch/arm/mach-mt8127/mt-smp.c
@@ -252,31 +265,34 @@ index 8af181f7..1dd64af2 100644
  /*******************************************************************************
  *                              C O N S T A N T S
 diff --git a/drivers/misc/mediatek/connectivity/conn_soc/drv_wlan/mt_wifi/wlan/mgmt/rlm_domain.c b/drivers/misc/mediatek/connectivity/conn_soc/drv_wlan/mt_wifi/wlan/mgmt/rlm_domain.c
-index 0f331b4c..85e95d29 100644
+index 0f331b4c..9c6d7a69 100644
 --- a/drivers/misc/mediatek/connectivity/conn_soc/drv_wlan/mt_wifi/wlan/mgmt/rlm_domain.c
 +++ b/drivers/misc/mediatek/connectivity/conn_soc/drv_wlan/mt_wifi/wlan/mgmt/rlm_domain.c
-@@ -521,7 +521,7 @@ DOMAIN_INFO_ENTRY arSupportedRegDomains_Passive[] = {
-         /* default passive channel table is empty */
- 		g_u2CountryGroup0_Passive,	 0,
+@@ -523,7 +523,7 @@ DOMAIN_INFO_ENTRY arSupportedRegDomains_Passive[] = {
  		{
--			{  81, BAND_2G4, CHNL_SPAN_5,	11,   0,  0 }, /* CH_SET_2G4_1_14 */
-+			{  81, BAND_2G4, CHNL_SPAN_5,	1,   11,  0 }, /* CH_SET_2G4_1_14 */
+ 			{  81, BAND_2G4, CHNL_SPAN_5,	11,   0,  0 }, /* CH_SET_2G4_1_14 */
  			{  82, BAND_2G4, CHNL_SPAN_5,	5,	  0,  0 },
- 		
+-		
++
  			{ 115, BAND_5G,  CHNL_SPAN_20,	36,   0,  0 }, /* CH_SET_UNII_LOW_36_48 */
+ 			{ 118, BAND_5G,  CHNL_SPAN_20,	52,   0,  0 }, /* CH_SET_UNII_MID_52_64 */
+ 			{ 121, BAND_5G,  CHNL_SPAN_20, 100,   0,  0 }, /* CH_SET_UNII_WW_100_140 */
 diff --git a/drivers/misc/mediatek/connectivity/conn_soc/drv_wlan/mt_wifi/wlan/os/linux/gl_init.c b/drivers/misc/mediatek/connectivity/conn_soc/drv_wlan/mt_wifi/wlan/os/linux/gl_init.c
-index deac41f0..55865dd7 100644
+index deac41f0..1b87e6b4 100644
 --- a/drivers/misc/mediatek/connectivity/conn_soc/drv_wlan/mt_wifi/wlan/os/linux/gl_init.c
 +++ b/drivers/misc/mediatek/connectivity/conn_soc/drv_wlan/mt_wifi/wlan/os/linux/gl_init.c
-@@ -2981,7 +2981,7 @@ wlanProbe(
+@@ -2981,9 +2981,9 @@ wlanProbe(
  							pucConfigBuf, WLAN_CFG_FILE_BUF_SIZE, &u4ConfigReadLen) == 0){
  					printk(KERN_ERR "CFG_FILE: Read /data/misc/wifi/wifi.cfg \n");
  				}
 -				else if(kalReadToFile("/etc/firmware/wifi.cfg", 
-+				else if(kalReadToFile("/lib/firmware/wifi.cfg", 
++				else if(kalReadToFile("/lib/firmware/wifi.cfg",
  							pucConfigBuf, WLAN_CFG_FILE_BUF_SIZE, &u4ConfigReadLen) == 0){
- 					printk(KERN_ERR "CFG_FILE: Read /etc/firmware/wifi.cfg \n");
+-					printk(KERN_ERR "CFG_FILE: Read /etc/firmware/wifi.cfg \n");
++					printk(KERN_ERR "CFG_FILE: Read /lib/firmware/wifi.cfg \n");
  				}
+ 				
+ 				if(pucConfigBuf[0] != '\0' && u4ConfigReadLen>0) {
 diff --git a/drivers/misc/mediatek/connectivity/conn_soc/drv_wlan/mt_wifi/wlan/os/linux/gl_kal.c b/drivers/misc/mediatek/connectivity/conn_soc/drv_wlan/mt_wifi/wlan/os/linux/gl_kal.c
 index c0285272..0ae2692a 100644
 --- a/drivers/misc/mediatek/connectivity/conn_soc/drv_wlan/mt_wifi/wlan/os/linux/gl_kal.c
@@ -330,6 +346,77 @@ index c0285272..0ae2692a 100644
  #endif
      if (IS_ERR(filp)) {
          DBGLOG(INIT, INFO, ("Open FW image: %s failed\n", CFG_FW_FILENAME));
+diff --git a/drivers/misc/mediatek/dispsys/mt8127/ddp_bls.c b/drivers/misc/mediatek/dispsys/mt8127/ddp_bls.c
+index e5510bcc..e493b679 100644
+--- a/drivers/misc/mediatek/dispsys/mt8127/ddp_bls.c
++++ b/drivers/misc/mediatek/dispsys/mt8127/ddp_bls.c
+@@ -34,6 +34,7 @@ static int gBLSPowerOn = 0;
+ #endif
+ static int gMaxLevel = 1023;
+ static int gPWMDiv = PWM_DEFAULT_DIV_VALUE;
++static int gCurLevel = 0;
+ 
+ static DEFINE_MUTEX(backlight_mutex);
+ 
+@@ -530,23 +531,35 @@ int disp_bls_set_max_backlight_(unsigned int level)
+ int disp_bls_get_max_backlight(void)
+ {
+     int max_bl;
+-    
++
+     mutex_lock(&backlight_mutex);
+     max_bl = gMaxLevel;
+     mutex_unlock(&backlight_mutex);
+-    
++
+     return max_bl;
+ }
+ 
++int disp_bls_get_backlight(void)
++{
++    int cur_bl;
++
++    mutex_lock(&backlight_mutex);
++    cur_bl = gCurLevel;
++    mutex_unlock(&backlight_mutex);
++
++    return cur_bl;
++}
++
+ 
+ #if !defined(CONFIG_MTK_AAL_SUPPORT)
+ int disp_bls_set_backlight(unsigned int level)
+ {
+-    unsigned int regVal; 
++    unsigned int regVal;
+     unsigned int mapped_level;
+     BLS_MSG("disp_bls_set_backlight: %d, gBLSPowerOn = %d\n", level, gBLSPowerOn);
+ 
+     mutex_lock(&backlight_mutex);
++    gCurLevel = level;
+ 
+ //	    if (level && (!clock_is_on(MT_CG_DISP0_MDP_BLS_26M) || !gBLSPowerOn)) 
+ //	    {   
+@@ -598,6 +611,7 @@ int disp_bls_set_backlight(unsigned int level)
+     BLS_MSG("disp_bls_set_backlight: %d\n", level);
+ 
+     mutex_lock(&backlight_mutex);
++    gCurLevel = level;
+     disp_aal_lock();
+     param = get_aal_config();
+     param->pwmDuty = level;
+diff --git a/drivers/misc/mediatek/dispsys/mt8127/ddp_bls.h b/drivers/misc/mediatek/dispsys/mt8127/ddp_bls.h
+index c41e9488..cd165406 100644
+--- a/drivers/misc/mediatek/dispsys/mt8127/ddp_bls.h
++++ b/drivers/misc/mediatek/dispsys/mt8127/ddp_bls.h
+@@ -10,6 +10,7 @@ void disp_bls_config_full(unsigned int width, unsigned int height);
+ int disp_bls_set_backlight(unsigned int level);
+ int disp_bls_set_max_backlight_(unsigned int level);
+ int disp_bls_get_max_backlight(void);
++int disp_bls_get_backlight(void);
+ 
+ DISPLAY_GAMMA_T * get_gamma_index(void);
+ DISPLAY_PWM_T * get_pwm_lut(void);
 diff --git a/drivers/misc/mediatek/i2c/mt8127/i2c.c b/drivers/misc/mediatek/i2c/mt8127/i2c.c
 index c2a392a2..a699dce1 100644
 --- a/drivers/misc/mediatek/i2c/mt8127/i2c.c
@@ -1109,10 +1196,18 @@ index dbd22d32..1b2416f7 100644
  	}
          if(dpiIntCallback)
 diff --git a/drivers/misc/mediatek/video/mt8127/mtkfb.c b/drivers/misc/mediatek/video/mt8127/mtkfb.c
-index f8f4c8f6..097eceee 100644
+index f8f4c8f6..d0e4293c 100644
 --- a/drivers/misc/mediatek/video/mt8127/mtkfb.c
 +++ b/drivers/misc/mediatek/video/mt8127/mtkfb.c
-@@ -63,6 +63,8 @@
+@@ -39,6 +39,7 @@
+ #include "ddp_hal.h"
+ #include "disp_drv_log.h"
+ #include "disp_hal.h"
++#include "ddp_bls.h"
+ 
+ #include "mtkfb.h"
+ #include "mtkfb_console.h"
+@@ -63,6 +64,8 @@
  
  //#undef pr_info
  //#define pr_info printk
@@ -1121,7 +1216,15 @@ index f8f4c8f6..097eceee 100644
  
  unsigned int EnableVSyncLog = 0;
  
-@@ -840,9 +842,9 @@ static int mtkfb_pan_display_impl(struct fb_var_screeninfo *var, struct fb_info
+@@ -193,6 +196,7 @@ extern BOOL is_lcm_in_suspend_mode;
+ // ---------------------------------------------------------------------------
+ 
+ static int init_framebuffer(struct fb_info *info);
++
+ //static int mtkfb_set_overlay_config(struct mtkfb_device *fbdev,
+ //        struct fb_overlay_config* config, struct sync_fence* fences[]);
+ int mtkfb_queue_overlay_config(struct mtkfb_device *fbdev,
+@@ -840,15 +844,15 @@ static int mtkfb_pan_display_impl(struct fb_var_screeninfo *var, struct fb_info
          layerInfo.tgt_offset_y = 0;
          layerInfo.tgt_width = var->xres;
          layerInfo.tgt_height = var->yres;
@@ -1133,7 +1236,14 @@ index f8f4c8f6..097eceee 100644
          layerInfo.isTdshp = TRUE;  // set to 1, will go through tdshp first, then layer blending, then to color
          layerInfo.next_buff_idx = -1;
          layerInfo.identity = 0;
-@@ -1193,7 +1195,7 @@ static int mtkfb_set_par(struct fb_info *fbi)
+         layerInfo.connected_type = 0;
+         layerInfo.security = 0;
+-        pr_info("[mtkfb] pan display set va=0x%x, pa=0x%x \n",(unsigned int)vaStart,paStart);
++        pr_debug("[mtkfb] pan display set va=0x%x, pa=0x%x \n",(unsigned int)vaStart,paStart);
+         Disp_Ovl_Engine_Set_layer_info(mtkfb_instance, &layerInfo);
+ 
+         if(get_boot_mode() != FACTORY_BOOT)
+@@ -1193,7 +1197,7 @@ static int mtkfb_set_par(struct fb_info *fbi)
      fb_layer.tgt_offset_x = fb_layer.tgt_offset_y = 0;
  
  //    fb_layer.src_color_key = 0;
@@ -1142,6 +1252,50 @@ index f8f4c8f6..097eceee 100644
      fb_layer.layer_type = LAYER_2D;
  
      mutex_lock(&OverlaySettingMutex);
+@@ -2830,6 +2834,35 @@ static int mtkfb_ioctl(struct file *file, struct fb_info *info, unsigned int cmd
+ }
+ 
+ 
++/* Ties fbcon's VT blank/unblank (console idle timeout, or explicit
++ * FBIOBLANK ioctl) to the actual backlight hardware, which mtkfb
++ * otherwise leaves completely untouched. Deliberately goes through
++ * disp_bls_set_backlight()/disp_bls_get_backlight() only - the same
++ * authoritative entry point the "lcd-backlight" LED classdev uses
++ * (see cust_leds.c: MT65XX_LED_MODE_CUST_BLS_PWM) - rather than
++ * duplicating panel/PWM register access here.
++ */
++static unsigned int mtkfb_blank_saved_level;
++static bool mtkfb_is_blanked;
++
++static int mtkfb_blank(int blank, struct fb_info *info)
++{
++    if (blank == FB_BLANK_UNBLANK) {
++        /* Guard against a spurious initial unblank (e.g. at fbcon
++         * registration) restoring a level we never actually saved.
++         */
++        if (mtkfb_is_blanked) {
++            disp_bls_set_backlight(mtkfb_blank_saved_level);
++            mtkfb_is_blanked = false;
++        }
++    } else if (!mtkfb_is_blanked) {
++        mtkfb_blank_saved_level = disp_bls_get_backlight();
++        disp_bls_set_backlight(0);
++        mtkfb_is_blanked = true;
++    }
++    return 0;
++}
++
+ /* Callback table for the frame buffer framework. Some of these pointers
+  * will be changed according to the current setting of fb_info->accel_flags.
+  */
+@@ -2846,6 +2879,7 @@ static struct fb_ops mtkfb_ops = {
+     .fb_check_var   = mtkfb_check_var,
+     .fb_set_par     = mtkfb_set_par,
+     .fb_ioctl       = mtkfb_ioctl,
++    .fb_blank       = mtkfb_blank,
+ };
+ 
+ /*
 diff --git a/drivers/misc/mediatek/wdk/wd_api.c b/drivers/misc/mediatek/wdk/wd_api.c
 index c382f7a7..b94fcf7a 100644
 --- a/drivers/misc/mediatek/wdk/wd_api.c

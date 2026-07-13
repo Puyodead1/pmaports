@@ -1,0 +1,39 @@
+maintainer="Puyodead1 <23562356riley@gmail.com>"
+pkgname=quanta-narnia-wifi-loader
+pkgver=1
+pkgrel=0
+pkgdesc="LeapFrog EpicV3 (quanta-narnia) WiFi/BT/GPS combo-chip loader (wmt_loader + 6620_launcher)"
+url="https://github.com/Puyodead1/wmt"
+arch="armv7"
+license="custom"
+options="!check !archcheck"
+depends="
+	openrc
+	firmware-quanta-narnia
+"
+makedepends="linux-headers"
+install="$pkgname.post-install"
+source="
+	wmt_loader.c
+	stp_uart_launcher.c
+	wmt_ioctl.h
+	$pkgname.initd
+"
+
+build() {
+	${CC:-cc} -static -o wmt_loader wmt_loader.c
+	${CC:-cc} -static -o 6620_launcher stp_uart_launcher.c -lpthread
+}
+
+package() {
+	install -Dm755 wmt_loader "$pkgdir/usr/bin/wmt_loader"
+	install -Dm755 6620_launcher "$pkgdir/usr/bin/6620_launcher"
+	install -Dm755 "$srcdir/$pkgname.initd" "$pkgdir/etc/init.d/$pkgname"
+}
+
+sha512sums="
+d65ca9447fd2da257e138aae5e5d6afa31016db5b70ea152a7d13bd3d11a0b50b9f425c8c8e7977ab60a6b768f47f7c344ac3e1032bad9b4eaf9062d9da15785  wmt_loader.c
+fb6508e239655c4ce93f00b63194ee4f7013760d4c5b8efbf83e557e4841cace19e4866e2f569ed5c25988cfb3de919901575046429cf778be234851cfd65150  stp_uart_launcher.c
+2b5aec6a663ed7318fdb4ce38aee715f1bf48826da2b2dd21f0f6568d6faa149457d79190938b90ae9406a5f7662a9615485f67ceaf85d9000d5800b89a1dc8c  wmt_ioctl.h
+82adbb46c363e3b13fd038f1ac8ac53a2ebd8cd570886b447d607d9f4ab2361f89a934f70af33380ebdb29dd0ea6b97ad7639b457806926c9818410cf2310eb0  quanta-narnia-wifi-loader.initd
+"

@@ -172,19 +172,18 @@ index 3391891a..14ad42e1 100644
          switch (action) {
          case CPU_ONLINE:
  	case CPU_ONLINE_FROZEN:
-diff --git a/arch/arm/mach-mt8127/narnia/Makefile b/arch/arm/mach-mt8127/narnia/Makefile
-index b2dd1e79..338547c6 100644
---- a/arch/arm/mach-mt8127/narnia/Makefile
-+++ b/arch/arm/mach-mt8127/narnia/Makefile
-@@ -35,7 +35,7 @@ obj-y   +=  leds/
- obj-y   +=  lens/
- obj-y   +=  sound/
- ###obj-y   +=  ssw/
--obj-y   +=  touchpanel/
-+#obj-y   +=  touchpanel/
- obj-y   +=  vibrator/
- #obj-y   +=  wmt/
- ifeq ($(CONFIG_MTK_HDMI_SUPPORT),y)
+diff --git a/arch/arm/mach-mt8127/narnia/touchpanel/Makefile b/arch/arm/mach-mt8127/narnia/touchpanel/Makefile
+index 383292a4..c49ded56 100755
+--- a/arch/arm/mach-mt8127/narnia/touchpanel/Makefile
++++ b/arch/arm/mach-mt8127/narnia/touchpanel/Makefile
+@@ -1,5 +1,7 @@
+ include $(srctree)/drivers/misc/mediatek/Makefile.custom
+ 
++ccflags-y += -I$(src)
++
+ obj-y   :=  flash.o
+ obj-y   +=  icn85xx.o
+ obj-y   +=  mtk_tpd.o
 diff --git a/arch/arm/mm/proc-v7.S b/arch/arm/mm/proc-v7.S
 index 4ac6a962..b8d6d5c0 100644
 --- a/arch/arm/mm/proc-v7.S
@@ -210,6 +209,19 @@ index 4a811654..6b3ab36d 100644
  	lo->transfer = transfer_none;
  	lo->ioctl = NULL;
  	lo->lo_sizelimit = 0;
+diff --git a/drivers/misc/mediatek/Makefile.custom b/drivers/misc/mediatek/Makefile.custom
+index eca75297..ac78e23f 100644
+--- a/drivers/misc/mediatek/Makefile.custom
++++ b/drivers/misc/mediatek/Makefile.custom
+@@ -107,7 +107,7 @@ else
+ 	    		ifeq ($(CONFIG_ARCH_MT6795),y)
+ 	        		ccflags-y += -I$(MTK_CUSTOM_PATH)/lens/mt6795/inc
+ 			else
+-				$(warning "Maybe you should set the lens include path")
++ $(warning "Maybe you should set the lens include path")
+ 			endif
+ 		endif
+ 	    endif   
 diff --git a/drivers/misc/mediatek/connectivity/combo/common/core/include/wmt_conf.h b/drivers/misc/mediatek/connectivity/combo/common/core/include/wmt_conf.h
 index 7c6f6750..8362f1af 100644
 --- a/drivers/misc/mediatek/connectivity/combo/common/core/include/wmt_conf.h
@@ -1196,7 +1208,7 @@ index dbd22d32..1b2416f7 100644
  	}
          if(dpiIntCallback)
 diff --git a/drivers/misc/mediatek/video/mt8127/mtkfb.c b/drivers/misc/mediatek/video/mt8127/mtkfb.c
-index f8f4c8f6..d0e4293c 100644
+index f8f4c8f6..e60d2478 100644
 --- a/drivers/misc/mediatek/video/mt8127/mtkfb.c
 +++ b/drivers/misc/mediatek/video/mt8127/mtkfb.c
 @@ -39,6 +39,7 @@
@@ -1252,7 +1264,7 @@ index f8f4c8f6..d0e4293c 100644
      fb_layer.layer_type = LAYER_2D;
  
      mutex_lock(&OverlaySettingMutex);
-@@ -2830,6 +2834,35 @@ static int mtkfb_ioctl(struct file *file, struct fb_info *info, unsigned int cmd
+@@ -2830,6 +2834,51 @@ static int mtkfb_ioctl(struct file *file, struct fb_info *info, unsigned int cmd
  }
  
  
@@ -1279,6 +1291,22 @@ index f8f4c8f6..d0e4293c 100644
 +        }
 +    } else if (!mtkfb_is_blanked) {
 +        mtkfb_blank_saved_level = disp_bls_get_backlight();
++        if (mtkfb_blank_saved_level == 0)
++            /* The initial boot-time brightness is set via raw register
++             * writes in disp_bls_init()/disp_bls_config(), which never
++             * go through disp_bls_set_backlight() and so never update
++             * the level this reads back. A saved value of 0 here means
++             * "never actually set through this path", not "user wants
++             * it dark" - fall back to disp_bls_get_max_backlight(), which
++             * is in the same native units as the DISP_REG_BLS_PWM_DUTY
++             * register disp_bls_set_backlight() writes to directly
++             * (0-1023). A hardcoded 255 here was wrong: that's a
++             * LED-classdev-scale value (0-255), only ~25% of this
++             * register's actual range - visibly "on" but much dimmer
++             * than the true default the bootloader sets before Linux
++             * ever runs.
++             */
++            mtkfb_blank_saved_level = disp_bls_get_max_backlight();
 +        disp_bls_set_backlight(0);
 +        mtkfb_is_blanked = true;
 +    }
@@ -1288,7 +1316,7 @@ index f8f4c8f6..d0e4293c 100644
  /* Callback table for the frame buffer framework. Some of these pointers
   * will be changed according to the current setting of fb_info->accel_flags.
   */
-@@ -2846,6 +2879,7 @@ static struct fb_ops mtkfb_ops = {
+@@ -2846,6 +2895,7 @@ static struct fb_ops mtkfb_ops = {
      .fb_check_var   = mtkfb_check_var,
      .fb_set_par     = mtkfb_set_par,
      .fb_ioctl       = mtkfb_ioctl,

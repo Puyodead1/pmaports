@@ -3,7 +3,7 @@ maintainer="Puyodead1 <23562356riley@gmail.com>"
 pkgname=device-quanta-narnia
 pkgdesc="LeapFrog Epic Academy V3"
 pkgver=1
-pkgrel=3
+pkgrel=4
 url="https://postmarketos.org"
 license="MIT"
 arch="armv7"
@@ -17,6 +17,7 @@ depends="
 	firmware-quanta-narnia
 	quanta-narnia-wifi-loader
 	msm-fb-refresher
+	hwtest
 "
 makedepends="devicepkg-dev"
 source="
